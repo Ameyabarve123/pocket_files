@@ -3,7 +3,11 @@ import { Button } from "./ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { LogoutButton } from "./logout-button";
 
-export async function AuthButton() {
+interface AuthButtonProps {
+  size?: "default" | "sm" | "lg" | "icon";
+}
+
+export async function AuthButton({ size = "sm" }: AuthButtonProps) {
   const supabase = await createClient();
 
   // You can also use getUser() which will be slower.
@@ -18,10 +22,10 @@ export async function AuthButton() {
     </div>
   ) : (
     <div className="flex gap-2">
-      <Button asChild size="sm" variant={"outline"}>
+      <Button asChild size={size} variant={"outline"}>
         <Link href="/auth/login">Sign in</Link>
       </Button>
-      <Button asChild size="sm" variant={"default"}>
+      <Button asChild size={size} variant={"default"}>
         <Link href="/auth/sign-up">Sign up</Link>
       </Button>
     </div>
