@@ -2,18 +2,20 @@
 import { FolderOpen, Plus, Upload, Send, Search, Grid3x3, List, MoreVertical, Clock, FileText, Link as LinkIcon, Image, File, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DataCard from "@/components/data-card";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 
 export default function ProtectedPage() {
   // Mock data - replace with real data later
-  const sharedItems = [
-    { id: 1, type: "note", title: "Meeting notes", content: "Quick notes from the standup...", expiresIn: "4m 32s" },
-    { id: 2, type: "link", title: "https://example.com/article", content: "https://example.com/article", expiresIn: "12m 05s" },
-    { id: 3, type: "file", title: "presentation.pdf", content: "2.4 MB", expiresIn: "45m 18s" },
-  ];
+  const [sharedItems, setSharedItems] = useState(null);
   
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+  let mins: number = -1;
+
+  const chooseDuration = (minutes: number) => {
+    mins = minutes;
+  }
 
   async function uploadImageClient(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -21,8 +23,9 @@ export default function ProtectedPage() {
 
     const formData = new FormData();
     formData.append("file", file);
+    formData.append("duration", mins.toString());
 
-    const res = await fetch("/api/upload", {
+    const res = await fetch("/api/upload/temp-storage", {
       method: "POST",
       body: formData,
     });
@@ -35,6 +38,18 @@ export default function ProtectedPage() {
       alert("Upload failed: " + result.error.message);
     }
   }
+
+  async function getData() {
+    const res = await fetch("/api/get/temp-storage", {
+      method: "GET",
+    });
+
+    return res.json();
+  }
+
+  // getData().then((data) => {
+  //   setSharedItems(data);
+  // });
 
   return (
     <div className="flex flex-col gap-12 w-full">
@@ -74,16 +89,17 @@ export default function ProtectedPage() {
         </div>
 
         {/* Items List */}
-        {sharedItems.length > 0 ? (
+        {Array.isArray(sharedItems) && sharedItems.length > 0 ? (
           <div className="space-y-3">
-            {sharedItems.map((item) => (
+            {sharedItems.map((row) => (
               <DataCard
-                key={item.id.toString()}
-                id={item.id.toString()}
-                type={item.type as "note" | "link" | "file"}
-                title={item.title}
-                content={item.content}
-                expiresIn={item.expiresIn}
+                key={row.id.toString()}
+                id={row.id.toString()}
+                // type={row.type as "note" | "link" | "file"}
+                type={"file"}
+                title={row.title}
+                content={row.content}
+                expiresIn={row.expiresIn}
               />
             ))}
           </div>
@@ -115,16 +131,16 @@ export default function ProtectedPage() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Expiration Time</label>
               <div className="flex flex-wrap gap-2">
-                <button className="px-4 py-2 rounded-lg border-2 border-primary bg-primary text-primary-foreground text-sm font-medium transition-all">
+                <button onClick={() => chooseDuration(5)} className="px-4 py-2 rounded-lg border-2 border-border hover:border-primary focus:border-primary focus:bg-primary focus:text-primary-foreground hover:bg-primary/10 text-sm font-medium transition-all">
                   5 minutes
                 </button>
-                <button className="px-4 py-2 rounded-lg border-2 border-border hover:border-primary hover:bg-primary/10 text-sm font-medium transition-all">
+                <button onClick={() => chooseDuration(30)} className="px-4 py-2 rounded-lg border-2 border-border hover:border-primary focus:border-primary focus:bg-primary focus:text-primary-foreground hover:bg-primary/10 text-sm font-medium transition-all">
                   30 minutes
                 </button>
-                <button className="px-4 py-2 rounded-lg border-2 border-border hover:border-primary hover:bg-primary/10 text-sm font-medium transition-all">
+                <button onClick={() => chooseDuration(60)} className="px-4 py-2 rounded-lg border-2 border-border hover:border-primary focus:border-primary focus:bg-primary focus:text-primary-foreground hover:bg-primary/10 text-sm font-medium transition-all">
                   1 hour
                 </button>
-                <button className="px-4 py-2 rounded-lg border-2 border-border hover:border-primary hover:bg-primary/10 text-sm font-medium transition-all">
+                <button onClick={() => chooseDuration(1440)} className="px-4 py-2 rounded-lg border-2 border-border hover:border-primary focus:border-primary focus:bg-primary focus:text-primary-foreground hover:bg-primary/10 text-sm font-medium transition-all">
                   24 hours
                 </button>
               </div>
