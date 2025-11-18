@@ -2,9 +2,18 @@ import { AuthButton } from "@/components/auth-button";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { QrCode, Upload, Shield, Zap, Link2, FolderOpen } from "lucide-react";
 import { LandingCard } from "@/components/landingCards";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+
+  if (data?.user) {
+    redirect("/dashboard"); 
+  }
+
   return (
     <main className="min-h-screen flex flex-col items-center">
       <div className="flex-1 w-full flex flex-col items-center">

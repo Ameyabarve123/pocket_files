@@ -1,15 +1,27 @@
 import { FolderOpen, Plus, Upload, Send, Search, Grid3x3, List, MoreVertical, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export default async function TemporaryStorage() {
+export default async function LongTermStorage() {
   return (
     <div className="flex flex-col gap-12 w-full">
-      {/* Page Header */}
-      <div className="space-y-2">
-        <h1 className="text-4xl font-bold tracking-tight">Temporary Share</h1>
-        <p className="text-lg text-muted-foreground">
-          Quickly share folders, notes, or files with anyone
-        </p>
+      {/* Page Header with Search */}
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <h1 className="text-4xl font-bold tracking-tight">Temporary Share</h1>
+          <p className="text-lg text-muted-foreground">
+            Quickly share folders, notes, or files with anyone
+          </p>
+        </div>
+        
+        {/* Search Bar */}
+        <div className="flex items-center gap-2 border border-border rounded-lg px-4 py-3 bg-card shadow-sm max-w-2xl">
+          <Search className="w-5 h-5 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search your files..."
+            className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground"
+          />
+        </div>
       </div>
 
       {/* Folders Section with Search and View Toggle */}
@@ -83,31 +95,6 @@ export default async function TemporaryStorage() {
           </button>
         </div>
 
-        {/* Alternative: List View (commented out, can be toggled) */}
-        {/* 
-        <div className="space-y-2">
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-            <div
-              key={i}
-              className="flex items-center justify-between p-4 rounded-lg border border-border bg-card hover:bg-accent transition-colors cursor-pointer group"
-            >
-              <div className="flex items-center gap-4 flex-1 min-w-0">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/20 transition-colors">
-                  <FolderOpen className="w-5 h-5 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate">Folder {i}</p>
-                  <p className="text-xs text-muted-foreground">3 items • Expires in 2h</p>
-                </div>
-              </div>
-              <Button variant="ghost" size="sm">
-                <MoreVertical className="w-4 h-4" />
-              </Button>
-            </div>
-          ))}
-        </div>
-        */}
-
         {/* Pagination */}
         <div className="flex items-center justify-between mt-6 pt-6 border-t border-border">
           <p className="text-sm text-muted-foreground">Showing 8 of 24 folders</p>
@@ -122,59 +109,6 @@ export default async function TemporaryStorage() {
         </div>
       </div>
 
-      {/* Quick Share Section */}
-      <div className="space-y-4">
-        <h2 className="text-2xl font-semibold">Quick Share</h2>
-        
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-          <div className="flex flex-col gap-4">
-            {/* Duration Selection */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Expiration Time</label>
-              <div className="flex flex-wrap gap-2">
-                <button className="px-4 py-2 rounded-lg border-2 border-primary bg-primary text-primary-foreground text-sm font-medium transition-all">
-                  5 minutes
-                </button>
-                <button className="px-4 py-2 rounded-lg border-2 border-border hover:border-primary hover:bg-primary/10 text-sm font-medium transition-all">
-                  30 minutes
-                </button>
-                <button className="px-4 py-2 rounded-lg border-2 border-border hover:border-primary hover:bg-primary/10 text-sm font-medium transition-all">
-                  1 hour
-                </button>
-                <button className="px-4 py-2 rounded-lg border-2 border-border hover:border-primary hover:bg-primary/10 text-sm font-medium transition-all">
-                  24 hours
-                </button>
-              </div>
-            </div>
-
-            {/* Upload and Input */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-              {/* Upload button */}
-              <Button variant="outline" size="lg" className="gap-2">
-                <Upload className="w-4 h-4" />
-                Upload File
-              </Button>
-
-              {/* Input */}
-              <div className="flex-1 flex items-center gap-3 border border-border rounded-lg px-4 py-3 bg-background focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 transition-all">
-                <input
-                  type="text"
-                  placeholder="Write a note or paste a link..."
-                  className="flex-1 bg-transparent outline-none text-sm"
-                />
-                <Button size="sm" className="gap-2">
-                  <Send className="w-4 h-4" />
-                  Share
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          <p className="text-xs text-muted-foreground mt-4">
-            Files and notes will be automatically deleted after the selected time
-          </p>
-        </div>
-      </div>
     </div>
   );
 }

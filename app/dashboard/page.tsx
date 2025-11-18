@@ -1,13 +1,40 @@
+"use client";
 import { FolderOpen, Plus, Upload, Send, Search, Grid3x3, List, MoreVertical, Clock, FileText, Link as LinkIcon, Image, File, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import DataCard from "@/components/data-card";
+import { useRef } from "react";
 
-export default async function ProtectedPage() {
+
+export default function ProtectedPage() {
   // Mock data - replace with real data later
   const sharedItems = [
     { id: 1, type: "note", title: "Meeting notes", content: "Quick notes from the standup...", expiresIn: "4m 32s" },
     { id: 2, type: "link", title: "https://example.com/article", content: "https://example.com/article", expiresIn: "12m 05s" },
     { id: 3, type: "file", title: "presentation.pdf", content: "2.4 MB", expiresIn: "45m 18s" },
   ];
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function uploadImageClient(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    const result = await res.json();
+    if (res.ok) {
+      alert("File uploaded successfully!");
+    } else {
+      console.log(result.error.message);
+      alert("Upload failed: " + result.error.message);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-12 w-full">
@@ -50,54 +77,14 @@ export default async function ProtectedPage() {
         {sharedItems.length > 0 ? (
           <div className="space-y-3">
             {sharedItems.map((item) => (
-              <div
-                key={item.id}
-                className="bg-card border border-border rounded-xl p-4 hover:shadow-md transition-shadow group"
-              >
-                <div className="flex items-start gap-4">
-                  {/* Icon based on type */}
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    {item.type === "note" && <FileText className="w-5 h-5 text-primary" />}
-                    {item.type === "link" && <LinkIcon className="w-5 h-5 text-primary" />}
-                    {item.type === "file" && <File className="w-5 h-5 text-primary" />}
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2 mb-1">
-                      <h3 className="font-semibold text-sm truncate">{item.title}</h3>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                          <Clock className="w-3 h-3" />
-                          <span>{item.expiresIn}</span>
-                        </div>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    <p className="text-sm text-muted-foreground truncate">{item.content}</p>
-                    
-                    {/* Action buttons */}
-                    <div className="flex items-center gap-2 mt-3">
-                      <Button variant="outline" size="sm" className="h-8 text-xs">
-                        Copy Link
-                      </Button>
-                      <Button variant="outline" size="sm" className="h-8 text-xs">
-                        View
-                      </Button>
-                      <Button variant="ghost" size="sm" className="h-8 text-xs text-destructive hover:text-destructive">
-                        <X className="w-3 h-3 mr-1" />
-                        Delete
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <DataCard
+                key={item.id.toString()}
+                id={item.id.toString()}
+                type={item.type as "note" | "link" | "file"}
+                title={item.title}
+                content={item.content}
+                expiresIn={item.expiresIn}
+              />
             ))}
           </div>
         ) : (
@@ -146,7 +133,21 @@ export default async function ProtectedPage() {
             {/* Upload and Input */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
               {/* Upload button */}
-              <Button variant="outline" size="lg" className="gap-2">
+              <input
+                type="file"
+                accept="*/*"
+                ref={fileInputRef}
+                className="hidden"
+                onChange={uploadImageClient}
+              />
+
+              {/* Upload button */}
+              <Button
+                variant="outline"
+                size="lg"
+                className="gap-2"
+                onClick={() => fileInputRef.current?.click()}
+              >
                 <Upload className="w-4 h-4" />
                 Upload File
               </Button>

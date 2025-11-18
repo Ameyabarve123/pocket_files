@@ -9,17 +9,12 @@ import { useState } from "react";
 const navItems = [
   {
     title: "Home",
-    href: "/protected",
+    href: "/dashboard",
     icon: Home,
   },
   {
-    title: "Temporary Storage",
-    href: "/protected/temporary",
-    icon: Clock,
-  },
-  {
     title: "Long Term Storage",
-    href: "/protected/storage",
+    href: "/dashboard/storage",
     icon: FolderOpen,
   },
 ];
@@ -117,10 +112,10 @@ export function Sidebar() {
         {/* Settings Link */}
         <div className="px-4 pb-2">
           <Link
-            href="/protected/settings"
+            href="/dashboard/settings"
             className={cn(
               "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
-              pathname === "/protected/settings"
+              pathname === "/dashboard/settings"
                 ? "bg-primary text-primary-foreground shadow-sm"
                 : "text-muted-foreground hover:bg-accent hover:text-foreground",
               isCollapsed && "justify-center"
@@ -135,7 +130,7 @@ export function Sidebar() {
         {/* Profile */}
         <div className="p-4 border-t border-border">
           <Link
-            href="/protected/profile"
+            href="/dashboard/profile"
             className={cn(
               "flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-accent transition-all",
               isCollapsed && "justify-center px-2"

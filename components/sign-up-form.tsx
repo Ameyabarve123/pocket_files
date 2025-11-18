@@ -24,6 +24,7 @@ export function SignUpForm({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [repeatPassword, setRepeatPassword] = useState("");
+  const [username, setUsername] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -34,21 +35,56 @@ export function SignUpForm({
     setIsLoading(true);
     setError(null);
 
+    // Check if passwords match
     if (password !== repeatPassword) {
       setError("Passwords do not match");
       setIsLoading(false);
       return;
     }
 
+    // Check password strength
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long");
+      setIsLoading(false);
+      return;
+    }
+
+    // Check username length
+    if (username.length < 3) {
+      setError("Username must be at least 3 characters long");
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/protected`,
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+          data: {
+            username: username,
+          }
         },
       });
-      if (error) throw error;
+
+      if (error) {
+        // Check for duplicate email error - Supabase error codes
+        if (error.status === 422 || 
+            error.message.toLowerCase().includes("already") || 
+            error.message.toLowerCase().includes("exists") ||
+            error.message.toLowerCase().includes("registered")) {
+          throw new Error("An account with this email already exists. Please sign in instead.");
+        }
+        throw error;
+      }
+
+      // If signUp succeeds but user already exists, Supabase might return the user without creating a new one
+      if (data?.user && !data.session && data.user.identities?.length === 0) {
+        throw new Error("An account with this email already exists. Please sign in instead.");
+      }
+
+      // Success - redirect to success page
       router.push("/auth/sign-up-success");
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred");
@@ -86,6 +122,16 @@ export function SignUpForm({
                 />
               </div>
               <div className="grid gap-2">
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  type="username"
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
                 <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
                 </div>
@@ -109,7 +155,11 @@ export function SignUpForm({
                   onChange={(e) => setRepeatPassword(e.target.value)}
                 />
               </div>
-              {error && <p className="text-sm text-red-500">{error}</p>}
+              {error && (
+                <div className="text-sm text-red-500 bg-red-50 dark:bg-red-950/50 p-3 rounded-lg border border-red-200 dark:border-red-900">
+                  {error}
+                </div>
+              )}
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Creating an account..." : "Sign up"}
               </Button>
