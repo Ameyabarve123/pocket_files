@@ -10,16 +10,20 @@ export default function ProtectedPage() {
   const [selectedDuration, setSelectedDuration] = useState(5);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textInputRef = useRef<HTMLInputElement>(null);
 
   async function uploadImageClient(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      alert("Upload failed: No file selected");
+      return;
+    }
 
     const formData = new FormData();
     formData.append("file", file);
     formData.append("duration", selectedDuration.toString());
 
-    const res = await fetch("/api/upload/temp-storage", {
+    const res = await fetch("/api/upload/temp-storage/file", {
       method: "POST",
       body: formData,
     });
@@ -27,6 +31,34 @@ export default function ProtectedPage() {
     const result = await res.json();
     if (res.ok) {
       alert("File uploaded successfully!");
+      getData().then((data) => {
+        setSharedItems(data);
+      });
+    } else {
+      console.log(result.error.message);
+      alert("Upload failed: " + result.error.message);
+    }
+  }
+
+  async function uploadTextClient(e: React.ChangeEvent<HTMLInputElement>) {
+    const text = e.target.files?.[0];
+    if (!text) {
+      alert("Upload failed: No file selected");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("text", text);
+    formData.append("duration", selectedDuration.toString());
+
+    const res = await fetch("/api/upload/temp-storage/text", {
+      method: "POST",
+      body: formData,
+    });
+
+    const result = await res.json();
+    if (res.ok) {
+      alert("Text uploaded successfully!");
       getData().then((data) => {
         setSharedItems(data);
       });
@@ -227,8 +259,19 @@ export default function ProtectedPage() {
                   placeholder="Write a note or paste a link..."
                   className="flex-1 bg-transparent outline-none text-sm"
                 />
-                <Button size="sm" className="gap-2">
-                  <Send className="w-4 h-4" />
+                <input
+                  type="text"
+                  accept="*/*"
+                  ref={textInputRef}
+                  className="hidden"
+                  onChange={uploadTextClient}
+                />
+                <Button 
+                  size="sm" 
+                  className="gap-2"
+                  onClick={() => textInputRef.current?.click()}>
+                  <Send className="w-4 h-4" 
+                />
                   Share
                 </Button>
               </div>
