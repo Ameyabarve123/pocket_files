@@ -10,14 +10,11 @@ export default function ProtectedPage() {
   const [selectedDuration, setSelectedDuration] = useState(5);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const textInputRef = useRef<HTMLInputElement>(null);
+  const [textInput, setTextInput] = useState("");
 
   async function uploadImageClient(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file) {
-      alert("Upload failed: No file selected");
-      return;
-    }
+    if (!file) return;
 
     const formData = new FormData();
     formData.append("file", file);
@@ -40,15 +37,11 @@ export default function ProtectedPage() {
     }
   }
 
-  async function uploadTextClient(e: React.ChangeEvent<HTMLInputElement>) {
-    const text = e.target.files?.[0];
-    if (!text) {
-      alert("Upload failed: No file selected");
-      return;
-    }
+  async function uploadTextClient() {
+    if (textInput == "") return;
 
     const formData = new FormData();
-    formData.append("text", text);
+    formData.append("text", textInput);
     formData.append("duration", selectedDuration.toString());
 
     const res = await fetch("/api/upload/temp-storage/text", {
@@ -258,18 +251,12 @@ export default function ProtectedPage() {
                   type="text"
                   placeholder="Write a note or paste a link..."
                   className="flex-1 bg-transparent outline-none text-sm"
-                />
-                <input
-                  type="text"
-                  accept="*/*"
-                  ref={textInputRef}
-                  className="hidden"
-                  onChange={uploadTextClient}
+                  onChange={(e) => setTextInput(e.target.value)}
                 />
                 <Button 
                   size="sm" 
                   className="gap-2"
-                  onClick={() => textInputRef.current?.click()}>
+                  onClick={uploadTextClient}>
                   <Send className="w-4 h-4" 
                 />
                   Share

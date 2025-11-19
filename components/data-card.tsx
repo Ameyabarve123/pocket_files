@@ -1,6 +1,5 @@
 "use client";
 
-import { encode } from "punycode";
 import { Button } from "./ui/button"
 import { Share, Clock, MoreVertical, X, FileText, File, Download, Image } from "lucide-react"
 
@@ -98,25 +97,45 @@ const DataCard = ({
 
   // Delete file
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this file?')) return;
+    if (in_bucket === 1){
+      if (!confirm('Are you sure you want to delete this file?')) return;
     
-    try {
-      const fileName = encodeURIComponent(bucket_file_path);
-      console.log(fileName);
+      try {
+        const fileName = encodeURIComponent(bucket_file_path);
 
-      const res = await fetch(`/api/delete/temp-storage/${id}/${fileName}`, {
-        method: 'DELETE',
-      });
-      
-      if (res.ok) {
-        alert('File deleted successfully!');
-      } else {
+        const res = await fetch(`/api/delete/temp-storage/file/${id}/${fileName}`, {
+          method: 'DELETE',
+        });
+        
+        if (res.ok) {
+          alert('File deleted successfully!');
+        } else {
+          alert('Failed to delete file');
+        }
+      } catch (err) {
+        console.error('Delete error:', err);
         alert('Failed to delete file');
       }
-    } catch (err) {
-      console.error('Delete error:', err);
-      alert('Failed to delete file');
+    } else {
+      if (!confirm('Are you sure you want to delete this text?')) return;
+    
+      try {
+
+        const res = await fetch(`/api/delete/temp-storage/text/${id}/${uid}`, {
+          method: 'DELETE',
+        });
+        
+        if (res.ok) {
+          alert('Text deleted successfully!');
+        } else {
+          alert('Failed to delete text');
+        }
+      } catch (err) {
+        console.error('Delete error:', err);
+        alert('Failed to delete text');
+      }
     }
+    
   };
   
   return (

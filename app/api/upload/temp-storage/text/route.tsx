@@ -5,12 +5,13 @@ export async function POST(req: NextRequest) {
   try {
     // Read form data
     const formData = await req.formData();
-    const file = formData.get("file") as File;
+    const text = formData.get("text") as string;
     const duration = formData.get("duration") as string;
+    console.log("Uploading text:", text, "for duration:", duration);
     
     // Validate inputs
-    if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    if (!text) {
+      return NextResponse.json({ error: "No text provided" }, { status: 400 });
     }
 
     if (!duration || isNaN(parseInt(duration))) {
@@ -27,19 +28,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "User not authenticated" }, { status: 401 });
     }
 
-    // Upload to Supabase Storage
-    // TODO: HANDLE DURATION/EXPIRATION
-    const bucket_file_path = `${user.id}/${Date.now()}_${file.name}`;
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from("temporary_storage")
-      .upload(bucket_file_path, file, {
-        upsert: false,
-      });
-
-    if (uploadError) {
-      return NextResponse.json({ error: uploadError.message }, { status: 500 });
-    }
-
     // Insert into database
     const expiresAt = new Date(Date.now() + parseInt(duration) * 60000).toISOString(); // duration in minutes
     
@@ -47,13 +35,13 @@ export async function POST(req: NextRequest) {
       .from("temp_storage")
       .insert({
         uid: user.id,
-        file_name: file.name,
-        file_size: file.size,
-        file_type: file.type,
-        data: uploadData.path, // Storage path
-        in_bucket: 1,
+        file_name: text.slice(0, 20) + ".txt",
+        file_size: 0,
+        file_type: "text",
+        data: text, 
+        in_bucket: 0,
         expires_at: expiresAt,
-        bucket_file_path: bucket_file_path
+        bucket_file_path: null
       })
       .select()
       .single();
@@ -63,7 +51,6 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({
-      storage: uploadData,
       database: dbInsert,
     });
   } catch (err) {
