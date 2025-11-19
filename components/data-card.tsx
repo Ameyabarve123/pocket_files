@@ -1,49 +1,143 @@
 "use client";
 
+import { encode } from "punycode";
 import { Button } from "./ui/button"
-import { Clock } from "lucide-react"
-import { MoreVertical } from "lucide-react"
-import { X } from "lucide-react"
-import { FileText } from "lucide-react"
-import { Link as LinkIcon } from "lucide-react"
-import { File } from "lucide-react"
+import { Share, Clock, MoreVertical, X, FileText, File, Download, Image } from "lucide-react"
 
 interface DataCardProps {
   id: string;
-  type: "note" | "link" | "file";
-  title: string;
-  content: string;
-  expiresIn: string;
+  uid: string;
+  file_name: string;
+  file_size: number;
+  file_type: string;
+  data: string; // URL to the file
+  expires_at: string;
+  created_at: string;
+  in_bucket: number;
+  bucket_file_path: string;
 }
 
-const DataCard =  ({ 
+const DataCard = ({ 
   id, 
-  type, 
-  title, 
-  content, 
-  expiresIn
+  uid,
+  file_name, 
+  file_size,
+  file_type,
+  data,
+  expires_at,
+  created_at,
+  in_bucket,
+  bucket_file_path,
 }: DataCardProps) => {
+  
+  const isImage = file_type.startsWith('image/');
+
+  // Determine file type for icon
+  const getFileIcon = () => {
+    if (file_type.startsWith('image/')) {
+      return <Image className="w-5 h-5 text-primary" />;
+    } else if (file_type.includes('pdf') || file_type.includes('document')) {
+      return <FileText className="w-5 h-5 text-primary" />;
+    } else {
+      return <File className="w-5 h-5 text-primary" />;
+    }
+  };
+
+  // Format file size
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
+  // Calculate time remaining
+  const getTimeRemaining = () => {
+    const now = new Date();
+    const expiryDate = new Date(expires_at);
+    const diffMs = expiryDate.getTime() - now.getTime();
+    
+    if (diffMs < 0) return 'Expired';
+    
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    
+    if (diffDays > 0) return `${diffDays}d ${diffHours % 24}h`;
+    if (diffHours > 0) return `${diffHours}h ${diffMins % 60}m`;
+    return `${diffMins}m`;
+  };
+
+  // Copy link to clipboard save for link
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(data);
+      alert('Link copied to clipboard!');
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  // Download file
+  const handleDownload = async () => {
+    try {
+      const response = await fetch(data);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file_name;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error('Download error:', err);
+      alert('Failed to download file');
+    }
+  };
+
+  // Delete file
+  const handleDelete = async () => {
+    if (!confirm('Are you sure you want to delete this file?')) return;
+    
+    try {
+      const fileName = encodeURIComponent(bucket_file_path);
+      console.log(fileName);
+
+      const res = await fetch(`/api/delete/temp-storage/${id}/${fileName}`, {
+        method: 'DELETE',
+      });
+      
+      if (res.ok) {
+        alert('File deleted successfully!');
+      } else {
+        alert('Failed to delete file');
+      }
+    } catch (err) {
+      console.error('Delete error:', err);
+      alert('Failed to delete file');
+    }
+  };
+  
   return (
     <div
       key={id}
       className="bg-card border border-border rounded-xl p-4 hover:shadow-md transition-shadow group"
     >
       <div className="flex items-start gap-4">
-        {/* Icon based on type */}
+        {/* Icon based on file type */}
         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-          {type === "note" && <FileText className="w-5 h-5 text-primary" />}
-          {type === "link" && <LinkIcon className="w-5 h-5 text-primary" />}
-          {type === "file" && <File className="w-5 h-5 text-primary" />}
+          {getFileIcon()}
         </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2 mb-1">
-            <h3 className="font-semibold text-sm truncate">{title}</h3>
+            <h3 className="font-semibold text-sm truncate">{file_name}</h3>
             <div className="flex items-center gap-2 flex-shrink-0">
               <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
                 <Clock className="w-3 h-3" />
-                <span>{expiresIn}</span>
+                <span>{getTimeRemaining()}</span>
               </div>
               <Button 
                 variant="ghost" 
@@ -54,17 +148,47 @@ const DataCard =  ({
               </Button>
             </div>
           </div>
-          <p className="text-sm text-muted-foreground truncate">{content}</p>
+          <p className="text-sm text-muted-foreground">
+            {file_type} • {formatFileSize(file_size)}
+          </p>
+
+          {/* Image Preview */}
+          {isImage && (
+            <div className="mt-3 rounded-lg overflow-hidden border border-border">
+              <img 
+                src={data} 
+                alt={file_name} 
+                className="w-full max-h-48 object-contain bg-muted"
+              />
+            </div>
+          )}
           
           {/* Action buttons */}
           <div className="flex items-center gap-2 mt-3">
-            <Button variant="outline" size="sm" className="h-8 text-xs">
-              Copy Link
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-8 text-xs"
+              onClick={handleCopyLink}
+            >
+              <Share className="w-3 h-3 mr-1" />
+              Share
             </Button>
-            <Button variant="outline" size="sm" className="h-8 text-xs">
-              View
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-8 text-xs"
+              onClick={handleDownload}
+            >
+              <Download className="w-3 h-3 mr-1" />
+              Download
             </Button>
-            <Button variant="ghost" size="sm" className="h-8 text-xs text-destructive hover:text-destructive">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 text-xs text-destructive hover:text-destructive"
+              onClick={handleDelete}
+            >
               <X className="w-3 h-3 mr-1" />
               Delete
             </Button>

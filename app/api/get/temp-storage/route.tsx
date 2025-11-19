@@ -26,9 +26,6 @@ export async function GET(req: NextRequest) {
   // For each DB row, generate a signed URL for the file
   const results = await Promise.all(
     dbRows.map(async (row) => {
-      // If there is a file path, generate a signed URL
-      let signedUrl = null;
-
       if (row.in_bucket === 1) {
         const durationMinutes = Number(row.duration) || 5;
         const { data: signed, error: signedError } = await supabase.storage
@@ -48,6 +45,5 @@ export async function GET(req: NextRequest) {
       return row;
     })
   );
-
   return NextResponse.json(results);
 }

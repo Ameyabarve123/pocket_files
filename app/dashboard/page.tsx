@@ -2,20 +2,14 @@
 import { FolderOpen, Plus, Upload, Send, Search, Grid3x3, List, MoreVertical, Clock, FileText, Link as LinkIcon, Image, File, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DataCard from "@/components/data-card";
-import { useRef, useState } from "react";
-
+import { useEffect, useRef, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 export default function ProtectedPage() {
-  // Mock data - replace with real data later
-  const [sharedItems, setSharedItems] = useState(null);
-  
+  const [sharedItems, setSharedItems] = useState<any[] | null>(null);
+  const [selectedDuration, setSelectedDuration] = useState(5);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  let mins: number = -1;
-
-  const chooseDuration = (minutes: number) => {
-    mins = minutes;
-  }
 
   async function uploadImageClient(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -23,7 +17,7 @@ export default function ProtectedPage() {
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("duration", mins.toString());
+    formData.append("duration", selectedDuration.toString());
 
     const res = await fetch("/api/upload/temp-storage", {
       method: "POST",
@@ -33,6 +27,9 @@ export default function ProtectedPage() {
     const result = await res.json();
     if (res.ok) {
       alert("File uploaded successfully!");
+      getData().then((data) => {
+        setSharedItems(data);
+      });
     } else {
       console.log(result.error.message);
       alert("Upload failed: " + result.error.message);
@@ -47,9 +44,32 @@ export default function ProtectedPage() {
     return res.json();
   }
 
-  // getData().then((data) => {
-  //   setSharedItems(data);
-  // });
+  // Fetch data on component mount
+  useEffect(() => {
+    getData().then((data) => {
+      setSharedItems(data);
+    });
+
+    const supabase = createClient();
+    const channel = supabase
+      .channel('temp_storage_changes')
+      .on('postgres_changes', 
+        { event: 'INSERT', schema: 'public', table: 'temp_storage' },
+        () => {
+          getData().then((data) => setSharedItems(data));
+        }
+      ).on('postgres_changes', 
+        { event: 'DELETE', schema: 'public', table: 'temp_storage' },
+        () => {
+          getData().then((data) => setSharedItems(data));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   return (
     <div className="flex flex-col gap-12 w-full">
@@ -90,16 +110,20 @@ export default function ProtectedPage() {
 
         {/* Items List */}
         {Array.isArray(sharedItems) && sharedItems.length > 0 ? (
-          <div className="space-y-3">
+          <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 scrollbar-thin">
             {sharedItems.map((row) => (
               <DataCard
-                key={row.id.toString()}
-                id={row.id.toString()}
-                // type={row.type as "note" | "link" | "file"}
-                type={"file"}
-                title={row.title}
-                content={row.content}
-                expiresIn={row.expiresIn}
+                key={row.id}
+                id={row.id}
+                uid={row.uid}
+                file_name={row.file_name}
+                file_size={row.file_size}
+                file_type={row.file_type}
+                data={row.data}
+                expires_at={row.expires_at}
+                created_at={row.created_at}
+                in_bucket={row.in_bucket}
+                bucket_file_path={row.bucket_file_path}
               />
             ))}
           </div>
@@ -131,16 +155,44 @@ export default function ProtectedPage() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Expiration Time</label>
               <div className="flex flex-wrap gap-2">
-                <button onClick={() => chooseDuration(5)} className="px-4 py-2 rounded-lg border-2 border-border hover:border-primary focus:border-primary focus:bg-primary focus:text-primary-foreground hover:bg-primary/10 text-sm font-medium transition-all">
+                <button 
+                  onClick={() => setSelectedDuration(5)} 
+                  className={`px-4 py-2 rounded-lg border-2 hover:bg-primary/10 text-sm font-medium transition-all ${
+                    selectedDuration === 5 
+                      ? 'border-primary bg-primary text-primary-foreground' 
+                      : 'border-border hover:border-primary'
+                  }`}
+                >
                   5 minutes
                 </button>
-                <button onClick={() => chooseDuration(30)} className="px-4 py-2 rounded-lg border-2 border-border hover:border-primary focus:border-primary focus:bg-primary focus:text-primary-foreground hover:bg-primary/10 text-sm font-medium transition-all">
+                <button 
+                  onClick={() => setSelectedDuration(30)} 
+                  className={`px-4 py-2 rounded-lg border-2 hover:bg-primary/10 text-sm font-medium transition-all ${
+                    selectedDuration === 30 
+                      ? 'border-primary bg-primary text-primary-foreground' 
+                      : 'border-border hover:border-primary'
+                  }`}
+                >
                   30 minutes
                 </button>
-                <button onClick={() => chooseDuration(60)} className="px-4 py-2 rounded-lg border-2 border-border hover:border-primary focus:border-primary focus:bg-primary focus:text-primary-foreground hover:bg-primary/10 text-sm font-medium transition-all">
+                <button 
+                  onClick={() => setSelectedDuration(60)} 
+                  className={`px-4 py-2 rounded-lg border-2 hover:bg-primary/10 text-sm font-medium transition-all ${
+                    selectedDuration === 60 
+                      ? 'border-primary bg-primary text-primary-foreground' 
+                      : 'border-border hover:border-primary'
+                  }`}
+                >
                   1 hour
                 </button>
-                <button onClick={() => chooseDuration(1440)} className="px-4 py-2 rounded-lg border-2 border-border hover:border-primary focus:border-primary focus:bg-primary focus:text-primary-foreground hover:bg-primary/10 text-sm font-medium transition-all">
+                <button 
+                  onClick={() => setSelectedDuration(1440)} 
+                  className={`px-4 py-2 rounded-lg border-2 hover:bg-primary/10 text-sm font-medium transition-all ${
+                    selectedDuration === 1440 
+                      ? 'border-primary bg-primary text-primary-foreground' 
+                      : 'border-border hover:border-primary'
+                  }`}
+                >
                   24 hours
                 </button>
               </div>
