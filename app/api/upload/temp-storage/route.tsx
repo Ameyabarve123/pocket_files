@@ -28,12 +28,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Upload to Supabase Storage
-    // TODO: LOGIC FOR IF SAME FILE NAME EXISTS
     // TODO: HANDLE DURATION/EXPIRATION
-    // Probably put datetime in file name to avoid conflicts
+    const bucket_file_path = `${user.id}/${Date.now()}_${file.name}`;
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from("temporary_storage")
-      .upload(`${user.id}/${Date.now()}_${file.name}`, file, {
+      .upload(bucket_file_path, file, {
         upsert: false,
       });
 
@@ -43,7 +42,7 @@ export async function POST(req: NextRequest) {
 
     // Insert into database
     const expiresAt = new Date(Date.now() + parseInt(duration) * 60000).toISOString(); // duration in minutes
-
+    
     const { data: dbInsert, error: dbError } = await supabase
       .from("temp_storage")
       .insert({
@@ -54,6 +53,7 @@ export async function POST(req: NextRequest) {
         data: uploadData.path, // Storage path
         in_bucket: 1,
         expires_at: expiresAt,
+        bucket_file_path: bucket_file_path
       })
       .select()
       .single();
