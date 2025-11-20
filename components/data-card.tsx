@@ -1,8 +1,7 @@
 "use client";
 
-import { encode } from "punycode";
 import { Button } from "./ui/button"
-import { Share, Clock, MoreVertical, X, FileText, File, Download, Image } from "lucide-react"
+import { Share, Clock, MoreVertical, X, FileText, File, Download, Image, Copy } from "lucide-react"
 
 interface DataCardProps {
   id: string;
@@ -15,6 +14,7 @@ interface DataCardProps {
   created_at: string;
   in_bucket: number;
   bucket_file_path: string;
+  view: "grid" | "list";
 }
 
 const DataCard = ({ 
@@ -28,6 +28,7 @@ const DataCard = ({
   created_at,
   in_bucket,
   bucket_file_path,
+  view
 }: DataCardProps) => {
   
   const isImage = file_type.startsWith('image/');
@@ -98,32 +99,122 @@ const DataCard = ({
 
   // Delete file
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this file?')) return;
+    if (in_bucket === 1){
+      if (!confirm('Are you sure you want to delete this file?')) return;
     
-    try {
-      const fileName = encodeURIComponent(bucket_file_path);
-      console.log(fileName);
+      try {
+        const fileName = encodeURIComponent(bucket_file_path);
 
-      const res = await fetch(`/api/delete/temp-storage/${id}/${fileName}`, {
-        method: 'DELETE',
-      });
-      
-      if (res.ok) {
-        alert('File deleted successfully!');
-      } else {
+        const res = await fetch(`/api/delete/temp-storage/file/${id}/${fileName}`, {
+          method: 'DELETE',
+        });
+        
+        if (res.ok) {
+          alert('File deleted successfully!');
+        } else {
+          alert('Failed to delete file');
+        }
+      } catch (err) {
+        console.error('Delete error:', err);
         alert('Failed to delete file');
       }
-    } catch (err) {
-      console.error('Delete error:', err);
-      alert('Failed to delete file');
+    } else {
+      if (!confirm('Are you sure you want to delete this text?')) return;
+    
+      try {
+
+        const res = await fetch(`/api/delete/temp-storage/text/${id}/${uid}`, {
+          method: 'DELETE',
+        });
+        
+        if (res.ok) {
+          alert('Text deleted successfully!');
+        } else {
+          alert('Failed to delete text');
+        }
+      } catch (err) {
+        console.error('Delete error:', err);
+        alert('Failed to delete text');
+      }
     }
+    
   };
   
-  return (
-    <div
+  return view === "grid" ? (
+    <div 
       key={id}
-      className="bg-card border border-border rounded-xl p-4 hover:shadow-md transition-shadow group"
+      className="bg-card border border-border rounded-xl p-3 hover:shadow-md transition-shadow group flex flex-col"
     >
+      {/* Image / Icon */}
+      <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+        {isImage ? (
+          <img 
+            src={data}
+            alt={file_name}
+            className="object-contain w-full h-full"
+          />
+        ) : (
+          <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+            {getFileIcon()}
+          </div>
+        )}
+
+        {/* Hover actions (top-right) */}
+        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+          <Button 
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 p-0"
+            onClick={handleCopyLink}
+          >
+            {isImage ?
+              <Share className="w-4 h-4" />
+              :
+              <Copy className="w-4 h-4" />
+            }
+          </Button>
+
+          {isImage && (
+            <Button 
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 p-0"
+              onClick={handleDownload}
+            >
+              <Download className="w-4 h-4" />
+            </Button>
+          )}
+
+          <Button 
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+            onClick={handleDelete}
+          >
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Text content */}
+      <div className="mt-3 flex-1 min-w-0">
+        <h3 className="font-semibold text-sm truncate">
+          {in_bucket === 0 ? data : bucket_file_path}
+        </h3>
+
+        <p className="text-xs text-muted-foreground mt-1">
+          {file_type} • {formatFileSize(file_size)}
+        </p>
+
+        {/* Expiration / Time remaining */}
+        <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground bg-muted px-2 py-1 rounded w-fit">
+          <Clock className="w-3 h-3" />
+          <span>{getTimeRemaining()}</span>
+        </div>
+      </div>
+    </div>
+  ) : (
+    <div key={id} className="bg-card border border-border rounded-xl p-4 hover:shadow-md transition-shadow group">
       <div className="flex items-start gap-4">
         {/* Icon based on file type */}
         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -133,7 +224,7 @@ const DataCard = ({
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2 mb-1">
-            <h3 className="font-semibold text-sm truncate">{file_name}</h3>
+            <h3 className="font-semibold text-sm truncate">{in_bucket === 0 ? data : bucket_file_path}</h3>
             <div className="flex items-center gap-2 flex-shrink-0">
               <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
                 <Clock className="w-3 h-3" />
@@ -165,24 +256,40 @@ const DataCard = ({
           
           {/* Action buttons */}
           <div className="flex items-center gap-2 mt-3">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="h-8 text-xs"
-              onClick={handleCopyLink}
-            >
-              <Share className="w-3 h-3 mr-1" />
-              Share
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="h-8 text-xs"
-              onClick={handleDownload}
-            >
-              <Download className="w-3 h-3 mr-1" />
-              Download
-            </Button>
+            {isImage ?
+              <>
+                <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-8 text-xs"
+                    onClick={handleCopyLink}
+                  >
+                    <Share className="w-3 h-3 mr-1" />
+                    Share
+                  </Button> 
+
+                  <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-8 text-xs"
+                  onClick={handleDownload}
+                >
+                  <Download className="w-3 h-3 mr-1" />
+                  Download
+                </Button>
+              </>
+              :
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-8 text-xs"
+                onClick={handleCopyLink}
+              >
+                <Copy className="w-3 h-3 mr-1" />
+                Copy Text
+              </Button>
+            }
+
             <Button 
               variant="ghost" 
               size="sm" 

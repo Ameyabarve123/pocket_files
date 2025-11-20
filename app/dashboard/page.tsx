@@ -8,8 +8,22 @@ import { createClient } from "@/lib/supabase/client";
 export default function ProtectedPage() {
   const [sharedItems, setSharedItems] = useState<any[] | null>(null);
   const [selectedDuration, setSelectedDuration] = useState(5);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [view, setView] = useState<"grid" | "list">("grid");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [textInput, setTextInput] = useState("");
+
+  const filteredItems = sharedItems?.filter((item) => {
+    if (!searchQuery) return true;
+    
+    const query = searchQuery.toLowerCase();
+    return (
+      item.file_name.toLowerCase().includes(query) ||
+      item.file_type.toLowerCase().includes(query) ||
+      (item.data && item.data.toLowerCase().includes(query))
+    );
+  });
 
   async function uploadImageClient(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -19,7 +33,7 @@ export default function ProtectedPage() {
     formData.append("file", file);
     formData.append("duration", selectedDuration.toString());
 
-    const res = await fetch("/api/upload/temp-storage", {
+    const res = await fetch("/api/upload/temp-storage/file", {
       method: "POST",
       body: formData,
     });
@@ -27,6 +41,31 @@ export default function ProtectedPage() {
     const result = await res.json();
     if (res.ok) {
       alert("File uploaded successfully!");
+      getData().then((data) => {
+        setSharedItems(data);
+      });
+    } else {
+      console.log(result.error.message);
+      alert("Upload failed: " + result.error.message);
+    }
+  }
+
+  async function uploadTextClient() {
+    if (textInput == "") return;
+
+    const formData = new FormData();
+    formData.append("text", textInput);
+    formData.append("duration", selectedDuration.toString());
+
+    const res = await fetch("/api/upload/temp-storage/text", {
+      method: "POST",
+      body: formData,
+    });
+
+    const result = await res.json();
+    if (res.ok) {
+      alert("Text uploaded successfully!");
+      setTextInput("");
       getData().then((data) => {
         setSharedItems(data);
       });
@@ -93,15 +132,28 @@ export default function ProtectedPage() {
                 type="text"
                 placeholder="Search shares..."
                 className="flex-1 bg-transparent outline-none text-sm"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
 
             {/* View Toggle */}
             <div className="flex items-center border border-border rounded-lg p-1">
-              <button className="p-1.5 rounded hover:bg-accent transition-colors">
+              <button
+                className={`p-1.5 rounded hover:bg-accent transition-colors ${
+                  view === "grid" ? "bg-accent" : ""
+                }`}
+                onClick={() => setView("grid")}
+              >
                 <Grid3x3 className="w-4 h-4" />
               </button>
-              <button className="p-1.5 rounded hover:bg-accent transition-colors bg-accent">
+
+              <button
+                className={`p-1.5 rounded hover:bg-accent transition-colors ${
+                  view === "list" ? "bg-accent" : ""
+                }`}
+                onClick={() => setView("list")}
+              >
                 <List className="w-4 h-4" />
               </button>
             </div>
@@ -109,24 +161,48 @@ export default function ProtectedPage() {
         </div>
 
         {/* Items List */}
-        {Array.isArray(sharedItems) && sharedItems.length > 0 ? (
-          <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 scrollbar-thin">
-            {sharedItems.map((row) => (
-              <DataCard
-                key={row.id}
-                id={row.id}
-                uid={row.uid}
-                file_name={row.file_name}
-                file_size={row.file_size}
-                file_type={row.file_type}
-                data={row.data}
-                expires_at={row.expires_at}
-                created_at={row.created_at}
-                in_bucket={row.in_bucket}
-                bucket_file_path={row.bucket_file_path}
-              />
-            ))}
-          </div>
+        {Array.isArray(filteredItems) && filteredItems.length > 0 ? (
+          view === "grid" ? (
+            // GRID VIEW
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 max-h-[600px] overflow-y-auto pr-2 scrollbar-thin">
+              {filteredItems.map((row) => (
+                <DataCard
+                  key={row.id}
+                  id={row.id}
+                  uid={row.uid}
+                  file_name={row.file_name}
+                  file_size={row.file_size}
+                  file_type={row.file_type}
+                  data={row.data}
+                  expires_at={row.expires_at}
+                  created_at={row.created_at}
+                  in_bucket={row.in_bucket}
+                  bucket_file_path={row.bucket_file_path}
+                  view="grid"
+                />
+              ))}
+            </div>
+          ) : (
+            // LIST VIEW
+            <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 scrollbar-thin">
+              {filteredItems.map((row) => (
+                <DataCard
+                  key={row.id}
+                  id={row.id}
+                  uid={row.uid}
+                  file_name={row.file_name}
+                  file_size={row.file_size}
+                  file_type={row.file_type}
+                  data={row.data}
+                  expires_at={row.expires_at}
+                  created_at={row.created_at}
+                  in_bucket={row.in_bucket}
+                  bucket_file_path={row.bucket_file_path}
+                  view="list"
+                />
+              ))}
+            </div>
+          )
         ) : (
           // Empty state
           <div className="border-2 border-dashed border-border rounded-2xl p-12 text-center">
@@ -226,9 +302,20 @@ export default function ProtectedPage() {
                   type="text"
                   placeholder="Write a note or paste a link..."
                   className="flex-1 bg-transparent outline-none text-sm"
+                  onChange={(e) => setTextInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      uploadTextClient();
+                    }
+                  }}
                 />
-                <Button size="sm" className="gap-2">
-                  <Send className="w-4 h-4" />
+                <Button 
+                  size="sm" 
+                  className="gap-2"
+                  onClick={uploadTextClient}
+                  >
+                  <Send className="w-4 h-4" 
+                />
                   Share
                 </Button>
               </div>
