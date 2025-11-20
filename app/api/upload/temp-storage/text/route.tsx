@@ -30,12 +30,12 @@ export async function POST(req: NextRequest) {
 
     // Insert into database
     const expiresAt = new Date(Date.now() + parseInt(duration) * 60000).toISOString(); // duration in minutes
-    
+    // TODO: HANDLE DURATION/EXPIRATION
     const { data: dbInsert, error: dbError } = await supabase
       .from("temp_storage")
       .insert({
         uid: user.id,
-        file_name: text.slice(0, 20) + ".txt",
+        file_name: "text",
         file_size: 0,
         file_type: "text",
         data: text, 

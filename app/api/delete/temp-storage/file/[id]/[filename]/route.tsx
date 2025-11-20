@@ -17,13 +17,21 @@ export async function DELETE(
   }
 
   // Delete record from temp_storage and file from storage
-  const { id, filename } = await params;
+  const { id, filename } = params;
   const decodedName = decodeURIComponent(filename);
   
-  const response = await supabase
+  const { data: deleteData, error: deleteError } = await supabase
   .from('temp_storage')
   .delete()
   .eq('id', id)
+  .eq('uid', user.id);
+  
+  if (deleteError) {
+    return NextResponse.json(
+      { error: deleteError.message },
+      { status: 500 }
+    );
+  }
 
   const { data, error } = await supabase
   .storage
@@ -34,5 +42,5 @@ export async function DELETE(
     return NextResponse.json({ error: error.message }, { status: 500 });
   } 
 
-  return NextResponse.json({ message: "Record deleted", response });
+  return NextResponse.json({ message: "Record deleted"});
 }
