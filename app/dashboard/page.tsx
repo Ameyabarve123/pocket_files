@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import DataCard from "@/components/data-card";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { text } from "stream/consumers";
 
 export default function ProtectedPage() {
   const [sharedItems, setSharedItems] = useState<any[] | null>(null);
@@ -303,6 +304,7 @@ export default function ProtectedPage() {
                   placeholder="Write a note or paste a link..."
                   className="flex-1 bg-transparent outline-none text-sm"
                   onChange={(e) => setTextInput(e.target.value)}
+                  value={textInput}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       uploadTextClient();
