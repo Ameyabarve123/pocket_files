@@ -115,7 +115,7 @@ export default function ProtectedPage() {
     <div className="flex flex-col gap-12 w-full">
       {/* Page Header */}
       <div className="space-y-2">
-        <h1 className="text-4xl font-bold tracking-tight">Temporary Share</h1>
+        <h1 className="text-4xl font-bold tracking-tight">Home</h1>
         <p className="text-lg text-muted-foreground">
           Quickly share folders, notes, or files with anyone
         </p>
