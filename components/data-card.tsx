@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Button } from "./ui/button"
 import { Share, Clock, MoreVertical, X, FileText, File, Download, Image, Copy } from "lucide-react"
 
@@ -32,6 +33,7 @@ const DataCard = ({
 }: DataCardProps) => {
   
   const isImage = file_type.startsWith('image/');
+  const [timeRemaining, setTimeRemaining] = useState('');
 
   // Determine file type for icon
   const getFileIcon = () => {
@@ -51,22 +53,57 @@ const DataCard = ({
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
+  const deleteExpired = async() => {
+    try {
+        const fileName = encodeURIComponent(bucket_file_path);
+
+        const res = await fetch(`/api/delete/temp-storage/file/${id}/${fileName}`, {
+          method: 'DELETE',
+        });
+        
+        if (!res.ok) {
+          alert('Failed to delete file');
+        } 
+      } catch (err) {
+        console.error('Delete error:', err);
+        alert('Failed to delete file');
+      }
+  }
+
   // Calculate time remaining
   const getTimeRemaining = () => {
     const now = new Date();
-    const expiryDate = new Date(expires_at);
+    const expiryDate = new Date(expires_at); // expire in 30 seconds
     const diffMs = expiryDate.getTime() - now.getTime();
     
-    if (diffMs < 0) return 'Expired';
+    if (diffMs < 0) {
+      deleteExpired();
+      return 'Expired';
+    } 
     
-    const diffMins = Math.floor(diffMs / 60000);
+    const diffSecs = Math.floor(diffMs / 1000);
+    const diffMins = Math.floor(diffSecs / 60);
     const diffHours = Math.floor(diffMins / 60);
     const diffDays = Math.floor(diffHours / 24);
     
-    if (diffDays > 0) return `${diffDays}d ${diffHours % 24}h`;
-    if (diffHours > 0) return `${diffHours}h ${diffMins % 60}m`;
-    return `${diffMins}m`;
+    if (diffDays > 0) return `${diffDays}d ${diffHours % 24}h ${diffMins % 60}m`;
+    if (diffHours > 0) return `${diffHours}h ${diffMins % 60}m ${diffSecs % 60}s`;
+    if (diffMins > 0) return `${diffMins}m ${diffSecs % 60}s`;
+    return `${diffSecs}s`;
   };
+
+  useEffect(() => {
+    // Set initial value
+    setTimeRemaining(getTimeRemaining());
+
+    // Update every second (1000ms)
+    const interval = setInterval(() => {
+      setTimeRemaining(getTimeRemaining());
+    }, 1000);
+
+    // Cleanup interval on unmount
+    return () => clearInterval(interval);
+  }, [expires_at]);
 
   // Copy link to clipboard save for link
   const handleCopyLink = async () => {
@@ -209,7 +246,7 @@ const DataCard = ({
         {/* Expiration / Time remaining */}
         <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground bg-muted px-2 py-1 rounded w-fit">
           <Clock className="w-3 h-3" />
-          <span>{getTimeRemaining()}</span>
+          <span>{timeRemaining}</span>
         </div>
       </div>
     </div>
@@ -228,7 +265,7 @@ const DataCard = ({
             <div className="flex items-center gap-2 flex-shrink-0">
               <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
                 <Clock className="w-3 h-3" />
-                <span>{getTimeRemaining()}</span>
+                <span>{timeRemaining}</span>
               </div>
               <Button 
                 variant="ghost" 

@@ -17,7 +17,7 @@ export async function DELETE(
   }
 
   // Delete record from temp_storage and file from storage
-  const { id, filename } = params;
+  const { id, filename } = await params;
   const decodedName = decodeURIComponent(filename);
   
   const { data: deleteData, error: deleteError } = await supabase
