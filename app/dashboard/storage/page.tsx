@@ -1,4 +1,5 @@
-import { FolderOpen, Plus, Upload, Send, Search, Grid3x3, List, MoreVertical, Clock } from "lucide-react";
+import { Plus, Search, Grid3x3, List } from "lucide-react";
+import FolderCard from "@/components/folder-card";
 import { Button } from "@/components/ui/button";
 
 export default async function LongTermStorage() {
@@ -7,9 +8,9 @@ export default async function LongTermStorage() {
       {/* Page Header with Search */}
       <div className="space-y-4">
         <div className="space-y-2">
-          <h1 className="text-4xl font-bold tracking-tight">Temporary Share</h1>
+          <h1 className="text-4xl font-bold tracking-tight">Files</h1>
           <p className="text-lg text-muted-foreground">
-            Quickly share folders, notes, or files with anyone
+            Save and organize your files for long-term access.
           </p>
         </div>
         
@@ -60,30 +61,8 @@ export default async function LongTermStorage() {
         {/* Grid View */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {/* Example folder cards */}
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-            <div
-              key={i}
-              className="group rounded-xl border border-border bg-card p-4 shadow-sm hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer relative"
-            >
-              {/* More options */}
-              <button className="absolute top-2 right-2 p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-accent transition-opacity">
-                <MoreVertical className="w-4 h-4 text-muted-foreground" />
-              </button>
-
-              <div className="flex flex-col items-center gap-3 text-center">
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                  <FolderOpen className="w-6 h-6 text-primary" />
-                </div>
-                <div className="space-y-1 w-full">
-                  <p className="font-semibold text-sm truncate">Folder {i}</p>
-                  <p className="text-xs text-muted-foreground">3 items</p>
-                  <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-                    <Clock className="w-3 h-3" />
-                    <span>2h left</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+          {["Folder 1", "Folder 2", "Folder 3", "Folder 4"].map((i) => (
+            <FolderCard key={i} i={i} />
           ))}
 
           {/* Add new folder */}
