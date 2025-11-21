@@ -73,10 +73,10 @@ const DataCard = ({
   // Calculate time remaining
   const getTimeRemaining = () => {
     const now = new Date();
-    const expiryDate = new Date(expires_at); // expire in 30 seconds
+    const expiryDate = new Date(expires_at); 
     const diffMs = expiryDate.getTime() - now.getTime();
     
-    if (diffMs < 0) {
+    if (diffMs <= 0) {
       deleteExpired();
       return 'Expired';
     } 
@@ -204,14 +204,14 @@ const DataCard = ({
             className="h-7 w-7 p-0"
             onClick={handleCopyLink}
           >
-            {isImage ?
+            {in_bucket === 1 ?
               <Share className="w-4 h-4" />
               :
               <Copy className="w-4 h-4" />
             }
           </Button>
 
-          {isImage && (
+          {in_bucket === 1 && (
             <Button 
               variant="ghost"
               size="icon"
@@ -293,7 +293,7 @@ const DataCard = ({
           
           {/* Action buttons */}
           <div className="flex items-center gap-2 mt-3">
-            {isImage ?
+            {in_bucket === 1 ?
               <>
                 <Button 
                     variant="outline" 
