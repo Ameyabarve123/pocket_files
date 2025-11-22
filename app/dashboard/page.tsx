@@ -1,10 +1,9 @@
 "use client";
-import { FolderOpen, Plus, Upload, Send, Search, Grid3x3, List, MoreVertical, Clock, FileText, Link as LinkIcon, Image, File, X } from "lucide-react";
+import { Upload, Send, Search, Grid3x3, List, Link as LinkIcon, Image, File, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DataCard from "@/components/data-card";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { text } from "stream/consumers";
 
 export default function ProtectedPage() {
   const [sharedItems, setSharedItems] = useState<any[] | null>(null);
@@ -46,7 +45,7 @@ export default function ProtectedPage() {
         setSharedItems(data);
       });
     } else {
-      console.log(result.error.message);
+      console.log(result.error);
       alert("Upload failed: " + result.error.message);
     }
   }
