@@ -7,14 +7,25 @@ CREATE TABLE profiles (
 );
 
 -- Long term storage (one-to-many with auth.users)
-CREATE TABLE long_term_storage (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  uid uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  file_name text NOT NULL,
+create table storage_nodes (
+  id uuid primary key default gen_random_uuid(),
+
+  -- Ownership (optional if you want per-user access)
+  uid uuid references auth.users(id) on delete cascade,
+
+  -- Node info
+  name text not null,
+  type text not null check (type in ('file', 'folder')),
+  parent_id uuid references storage_nodes(id) on delete cascade,
+
+  -- File metadata (NULL for folders)
+  bucket text,             -- which bucket it's stored in
+  bucket_path text,        -- path inside bucket
+  mime_type text,
   file_size bigint,
-  file_type text,
-  data text, -- or jsonb for structured data
-  created_at timestamptz DEFAULT now()
+
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
 );
 
 -- Temporary storage (one-to-many with auth.users)

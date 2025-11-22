@@ -27,9 +27,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "User not authenticated" }, { status: 401 });
     }
 
+
     // Upload to Supabase Storage
     // TODO: HANDLE DURATION/EXPIRATION
-    const bucket_file_path = `${user.id}/${Date.now()}_${file.name}`;
+    const bucket_file_path = `${user.id}/${crypto.randomUUID()}-${file.name}`;
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from("temporary_storage")
       .upload(bucket_file_path, file, {

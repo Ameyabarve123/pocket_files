@@ -24,3 +24,23 @@ CREATE POLICY "Users can insert their own profile"
 ON public.profiles
 FOR INSERT
 WITH CHECK (auth.uid() = id);
+
+-- Step 6: Enable RLS on storage_nodes table
+ALTER TABLE public.storage_nodes ENABLE ROW LEVEL SECURITY;
+
+create policy "users_read_own_nodes"
+on storage_nodes for select
+using (auth.uid() = uid);
+
+create policy "users_write_own_nodes"
+on storage_nodes for insert
+with check (auth.uid() = uid);
+
+create policy "users_update_own_nodes"
+on storage_nodes for update
+using (auth.uid() = uid)
+with check (auth.uid() = uid);
+
+create policy "users_delete_own_nodes"
+on storage_nodes for delete
+using (auth.uid() = uid);

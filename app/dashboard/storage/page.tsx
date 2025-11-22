@@ -1,8 +1,170 @@
-import { Plus, Search, Grid3x3, List } from "lucide-react";
+"use client";
+
+import { Plus, Search, Grid3x3, List, FolderPlus, Upload, X } from "lucide-react";
 import FolderCard from "@/components/folder-card";
 import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/client";
+import { useState, useEffect } from "react";
 
-export default async function LongTermStorage() {
+export default function LongTermStorage() {
+  const [showNewDialog, setShowNewDialog] = useState(false);
+  const [dialogMode, setDialogMode] = useState<"select" | "folder" | "file" | "text">("select");
+  const [uploadType, setUploadType] = useState<"file" | "text">("file");
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    file: null as File | null,
+    textContent: ""
+  });
+  const [isUploading, setIsUploading] = useState(false);
+  const [folders, setFolders] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+
+  useEffect(() => {
+    loadFolders();
+  }, []);
+
+  async function loadFolders() {
+    setIsLoading(true);
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) return;
+
+      // Load both folders and files at root level
+      const { data, error } = await supabase
+        .from("storage_nodes")
+        .select("*")
+        .eq("uid", user.id)
+        .is("parent_id", null) // Only root level items
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error loading items:", error);
+      } else {
+        setFolders(data || []);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function createFolder(name: string, uid: any, parentId = null) {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("storage_nodes")
+      .insert({
+        name,
+        description: formData.description,
+        type: "folder",
+        uid,
+        parent_id: parentId
+      })
+      .select()
+      .single();
+
+    return { data, error };
+  }
+
+  async function uploadFile(file: File, name: string, description: string, parentId: string | null = null) {
+    const formDataToSend = new FormData();
+    formDataToSend.append("file", file);
+    formDataToSend.append("name", name);
+    formDataToSend.append("description", description);
+
+    const response = await fetch(`/api/upload/long-term-storage/${parentId || 'NULL'}`, {
+      method: "POST",
+      body: formDataToSend
+    });
+
+    return await response.json();
+  }
+
+  async function uploadText(textContent: string, name: string, description: string, parentId: string | null = null) {
+    const blob = new Blob([textContent], { type: 'text/plain' });
+    const file = new File([blob], `${name}.txt`, { type: 'text/plain' });
+
+    const formDataToSend = new FormData();
+    formDataToSend.append("file", file);
+    formDataToSend.append("name", name);
+    formDataToSend.append("description", description);
+
+    const response = await fetch(`/api/upload/long-term-storage/${parentId || 'NULL'}`, {
+      method: "POST",
+      body: formDataToSend
+    });
+
+    return await response.json();
+  }
+
+  const handleOpenDialog = () => {
+    setShowNewDialog(true);
+    setDialogMode("select");
+    setUploadType("file");
+    setFormData({ name: "", description: "", file: null, textContent: "" });
+  };
+
+  const handleCloseDialog = () => {
+    setShowNewDialog(false);
+    setDialogMode("select");
+    setUploadType("file");
+    setFormData({ name: "", description: "", file: null, textContent: "" });
+  };
+
+  const handleSubmit = async () => {
+    setIsUploading(true);
+
+    try {
+      if (dialogMode === "folder") {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        const result = await createFolder(formData.name, user?.id);
+        if (result.error) {
+          alert("Error creating folder: " + result.error.message);
+        } else {
+          alert("Folder created successfully!");
+          handleCloseDialog();
+          loadFolders(); // Refresh the folder list
+        }
+      } else if (dialogMode === "file") {
+        if (uploadType === "file" && formData.file) {
+          const result = await uploadFile(formData.file, formData.name, formData.description);
+          if (result.error) {
+            alert("Error uploading file: " + result.error);
+          } else {
+            alert("File uploaded successfully!");
+            handleCloseDialog();
+            loadFolders(); // Refresh to show any changes
+          }
+        } else if (uploadType === "text" && formData.textContent) {
+          const result = await uploadText(formData.textContent, formData.name, formData.description);
+          if (result.error) {
+            alert("Error uploading text: " + result.error);
+          } else {
+            alert("Text uploaded successfully!");
+            handleCloseDialog();
+            loadFolders(); // Refresh to show any changes
+          }
+        }
+      }
+    } catch (error) {
+      alert("An error occurred");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Pagination
+  const totalPages = Math.ceil(folders.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentFolders = folders.slice(startIndex, endIndex);
+
   return (
     <div className="flex flex-col gap-12 w-full">
       {/* Page Header with Search */}
@@ -25,10 +187,10 @@ export default async function LongTermStorage() {
         </div>
       </div>
 
-      {/* Folders Section with Search and View Toggle */}
+      {/* Folders Section */}
       <div>
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-          <h2 className="text-2xl font-semibold">Your Folders</h2>
+          <h2 className="text-2xl font-semibold">Your Files & Folders</h2>
           
           <div className="flex items-center gap-3 w-full sm:w-auto">
             {/* Search */}
@@ -51,7 +213,7 @@ export default async function LongTermStorage() {
               </button>
             </div>
 
-            <Button variant="default" size="sm">
+            <Button variant="default" size="sm" onClick={handleOpenDialog}>
               <Plus className="w-4 h-4 mr-2" />
               New
             </Button>
@@ -59,35 +221,251 @@ export default async function LongTermStorage() {
         </div>
 
         {/* Grid View */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {/* Example folder cards */}
-          {["Folder 1", "Folder 2", "Folder 3", "Folder 4"].map((i) => (
-            <FolderCard key={i} i={i} />
-          ))}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <p className="text-muted-foreground">Loading folders...</p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              {currentFolders.map((item) => (
+                <FolderCard 
+                  key={item.id}
+                  id={item.id}
+                  i={item.name}
+                  type={item.type}
+                  mimeType={item.mime_type}
+                  onDelete={loadFolders}
+                />
+              ))}
 
-          {/* Add new folder */}
-          <button className="rounded-xl border-2 border-dashed border-border p-4 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/5 transition-all h-full min-h-[140px]">
-            <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
-              <Plus className="w-6 h-6" />
+              {/* Add new folder */}
+              <button 
+                onClick={handleOpenDialog}
+                className="rounded-xl border-2 border-dashed border-border p-4 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/5 transition-all h-full min-h-[140px]"
+              >
+                <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
+                  <Plus className="w-6 h-6" />
+                </div>
+                <span className="text-sm font-medium">Create Folder</span>
+              </button>
             </div>
-            <span className="text-sm font-medium">Create Folder</span>
-          </button>
-        </div>
+
+            {folders.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No files or folders yet. Create your first folder or upload a file to get started!</p>
+              </div>
+            )}
+          </>
+        )}
 
         {/* Pagination */}
-        <div className="flex items-center justify-between mt-6 pt-6 border-t border-border">
-          <p className="text-sm text-muted-foreground">Showing 8 of 24 folders</p>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled>
-              Previous
-            </Button>
-            <Button variant="outline" size="sm">
-              Next
-            </Button>
+        {folders.length > 0 && (
+          <div className="flex items-center justify-between mt-6 pt-6 border-t border-border">
+            <p className="text-sm text-muted-foreground">
+              Showing {startIndex + 1}-{Math.min(endIndex, folders.length)} of {folders.length} items
+            </p>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => prev - 1)}
+              >
+                Previous
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => prev + 1)}
+              >
+                Next
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
+      {/* Dialog */}
+      {showNewDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg shadow-xl w-full max-w-md border border-border">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-border">
+              <h3 className="text-lg font-semibold">
+                {dialogMode === "select" && "Create New"}
+                {dialogMode === "folder" && "Create Folder"}
+                {dialogMode === "file" && "Upload Content"}
+              </h3>
+              <button
+                onClick={handleCloseDialog}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              {dialogMode === "select" && (
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    onClick={() => setDialogMode("folder")}
+                    className="flex flex-col items-center gap-3 p-6 border-2 border-border rounded-lg hover:border-primary hover:bg-primary/5 transition-all"
+                  >
+                    <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <FolderPlus className="w-6 h-6 text-primary" />
+                    </div>
+                    <span className="font-medium">New Folder</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDialogMode("file");
+                      setUploadType("file");
+                    }}
+                    className="flex flex-col items-center gap-3 p-6 border-2 border-border rounded-lg hover:border-primary hover:bg-primary/5 transition-all"
+                  >
+                    <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Upload className="w-6 h-6 text-primary" />
+                    </div>
+                    <span className="font-medium">Upload Content</span>
+                  </button>
+                </div>
+              )}
+
+              {dialogMode === "folder" && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Folder Name</label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Enter folder name"
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Description (optional)</label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      placeholder="Enter description"
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                      rows={3}
+                    />
+                  </div>
+                  <div className="flex gap-3 pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => setDialogMode("select")}
+                      className="flex-1"
+                    >
+                      Back
+                    </Button>
+                    <Button onClick={handleSubmit} className="flex-1" disabled={isUploading || !formData.name}>
+                      {isUploading ? "Creating..." : "Create Folder"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {dialogMode === "file" && (
+                <div className="space-y-4">
+                  {/* File or Text Toggle */}
+                  <div className="flex gap-2 p-1 bg-muted rounded-lg">
+                    <button
+                      onClick={() => setUploadType("file")}
+                      className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                        uploadType === "file" 
+                          ? "bg-background shadow-sm" 
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      Upload File
+                    </button>
+                    <button
+                      onClick={() => setUploadType("text")}
+                      className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                        uploadType === "text" 
+                          ? "bg-background shadow-sm" 
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      Upload Text
+                    </button>
+                  </div>
+
+                  {uploadType === "file" ? (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">File</label>
+                      <input
+                        type="file"
+                        onChange={(e) => setFormData({ ...formData, file: e.target.files?.[0] || null })}
+                        className="w-full px-3 py-2 border border-border rounded-lg bg-background file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Text Content</label>
+                      <textarea
+                        value={formData.textContent}
+                        onChange={(e) => setFormData({ ...formData, textContent: e.target.value })}
+                        placeholder="Enter your text content here..."
+                        className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                        rows={6}
+                      />
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Title</label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Enter file title"
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Description (optional)</label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      placeholder="Enter description"
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                      rows={3}
+                    />
+                  </div>
+                  <div className="flex gap-3 pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => setDialogMode("select")}
+                      className="flex-1"
+                    >
+                      Back
+                    </Button>
+                    <Button 
+                      onClick={handleSubmit} 
+                      className="flex-1" 
+                      disabled={
+                        isUploading || 
+                        !formData.name || 
+                        (uploadType === "file" && !formData.file) ||
+                        (uploadType === "text" && !formData.textContent)
+                      }
+                    >
+                      {isUploading ? "Uploading..." : "Upload"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
