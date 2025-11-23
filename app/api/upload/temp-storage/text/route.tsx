@@ -28,6 +28,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "User not authenticated" }, { status: 401 });
     }
 
+    const byteSize = new Blob([text]).size;
+
+    // Get current storage used
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("storage_used, max_storage")
+      .eq("id", user.id)
+      .single();
+
+    const currentStorage = profile?.storage_used || 0;
+    const maxStorage = profile?.max_storage || 5 * 1024 * 1024 * 1024; // Default to 5 GB if not set
+    const newStorage = currentStorage + byteSize;
+
+    if (newStorage > maxStorage) {
+      return NextResponse.json({ error: "Can't add new data. Storage limit exceeded" }, { status: 400 });
+    }
+
     // Insert into database
     const expiresAt = new Date(Date.now() + parseInt(duration) * 60000).toISOString(); // duration in minutes
     // TODO: HANDLE DURATION/EXPIRATION
@@ -36,7 +53,7 @@ export async function POST(req: NextRequest) {
       .insert({
         uid: user.id,
         file_name: "text",
-        file_size: 0,
+        file_size: byteSize,
         file_type: "text",
         data: text, 
         in_bucket: 0,
@@ -49,6 +66,14 @@ export async function POST(req: NextRequest) {
     if (dbError) {
       return NextResponse.json({ error: dbError.message }, { status: 500 });
     }
+
+    // Update storage in profile
+    await supabase
+    .from("profiles")
+    .update({ 
+      storage_used: newStorage
+    })
+    .eq("id", user.id);
 
     return NextResponse.json({
       database: dbInsert,

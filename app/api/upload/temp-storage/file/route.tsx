@@ -27,9 +27,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "User not authenticated" }, { status: 401 });
     }
 
+    // Get current storage used
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("storage_used, max_storage")
+      .eq("id", user.id)
+      .single();
+
+    const currentStorage = profile?.storage_used || 0;
+    const maxStorage = profile?.max_storage || 5 * 1024 * 1024 * 1024; // Default to 5 GB if not set
+    const newStorage = currentStorage + file.size;
+
+    if (newStorage > maxStorage) {
+      return NextResponse.json({ error: "Can't add new data. Storage limit exceeded" }, { status: 400 });
+    }
 
     // Upload to Supabase Storage
-    // TODO: HANDLE DURATION/EXPIRATION
     const bucket_file_path = `${user.id}/${crypto.randomUUID()}-${file.name}`;
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from("temporary_storage")
@@ -62,6 +75,14 @@ export async function POST(req: NextRequest) {
     if (dbError) {
       return NextResponse.json({ error: dbError.message }, { status: 500 });
     }
+
+    // Update storage in profile
+    await supabase
+    .from("profiles")
+    .update({ 
+      storage_used: newStorage
+    })
+    .eq("id", user.id);
 
     return NextResponse.json({
       storage: uploadData,
