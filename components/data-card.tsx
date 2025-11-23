@@ -70,19 +70,19 @@ const DataCard = ({
 
   const deleteExpired = async() => {
     try {
-        const fileName = encodeURIComponent(bucket_file_path);
-
-        const res = await fetch(`/api/delete/temp-storage/file/${id}/${fileName}`, {
+      if (in_bucket === 1) {
+        const res = await fetch(`/api/delete/temp-storage/file/${id}`, {
           method: 'DELETE',
         });
-        
-        if (!res.ok) {
-          alert('Failed to delete file');
-        } 
-      } catch (err) {
-        console.error('Delete error:', err);
-        alert('Failed to delete file');
+      } else {
+        const res = await fetch(`/api/delete/temp-storage/text/${id}`, {
+          method: 'DELETE',
+        });
       }
+    } catch (err) {
+      console.error('Delete error:', err);
+      alert('Failed to delete file');
+    }
   }
 
   // Calculate time remaining
@@ -91,7 +91,7 @@ const DataCard = ({
     const expiryDate = new Date(expires_at); 
     const diffMs = expiryDate.getTime() - now.getTime();
     
-    if (diffMs <= 0) {
+    if (diffMs < 0) {
       deleteExpired();
       return 'Expired';
     } 
@@ -126,7 +126,7 @@ const DataCard = ({
     try {
       await navigator.clipboard.writeText(data);
       if (in_bucket === 1)
-        alert('Shareable Link copied to clipboard!');
+        alert('Shareable Link copied to clipboard! NOTE: EVEN IF YOU DELETE THE FILE, THE LINK WILL STILL WORK UNTIL EXPIRATION.');
       else
         alert('Text copied to clipboard!');
     } catch (err) {
@@ -166,9 +166,7 @@ const DataCard = ({
       
       setIsDeleting(true);
       try {
-        const fileName = encodeURIComponent(bucket_file_path);
-
-        const res = await fetch(`/api/delete/temp-storage/file/${id}/${fileName}`, {
+        const res = await fetch(`/api/delete/temp-storage/file/${id}`, {
           method: 'DELETE',
         });
         
@@ -188,7 +186,7 @@ const DataCard = ({
       
       setIsDeleting(true);
       try {
-        const res = await fetch(`/api/delete/temp-storage/text/${id}/${uid}`, {
+        const res = await fetch(`/api/delete/temp-storage/text/${id}`, {
           method: 'DELETE',
         });
         

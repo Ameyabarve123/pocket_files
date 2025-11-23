@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Clock, FolderOpen, Home, Settings, User, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const navItems = [
   {
@@ -19,9 +19,46 @@ const navItems = [
   },
 ];
 
+function formatBytes(bytes: number) {
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  const value = bytes / Math.pow(k, i);
+  return `${value.toFixed(value >= 100 ? 0 : 1)} ${sizes[i]}`;
+}
+
 export function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [maxStorage, setMaxStorage] = useState(5 * 1024 * 1024 * 1024);
+  const [currentStorage, setCurrentStorage] = useState(0);
+
+  useEffect(() => {
+    fetchUserData();
+  }, []);
+  async function fetchUserData() {
+    try {
+      const res = await fetch('/api/get/user-data', {
+        method: 'GET',
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to fetch user data');
+      }
+
+      const data = await res.json();
+      setCurrentStorage(data["user_data"].storage_used);
+      setMaxStorage(data["user_data"].max_storage);
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    }
+  }
+
+  const percent = maxStorage > 0 ? Math.round((currentStorage / maxStorage) * 100) : 0;
+  const clampedPercent = Math.max(0, Math.min(100, percent));
+  console.log('Storage Used:', currentStorage, 'Max Storage:', maxStorage, 'Percent:', clampedPercent, '%', );
+  const usedLabel = `${formatBytes(currentStorage)} / ${formatBytes(maxStorage)}`;
 
   return (
     <aside className={cn(
@@ -87,23 +124,30 @@ export function Sidebar() {
             <div className="bg-muted/50 rounded-lg p-4 space-y-2">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Storage Used</span>
-                <span className="font-semibold">2.4 GB / 10 GB</span>
+                <span className="font-semibold">{usedLabel}</span>
               </div>
               <div className="w-full bg-muted rounded-full h-2">
-                <div className="bg-primary h-2 rounded-full" style={{ width: "24%" }}></div>
+                <div
+                  className="bg-primary h-2 rounded-full"
+                  style={{ width: `${clampedPercent}%` }}
+                ></div>
               </div>
             </div>
           ) : (
-            <div className="flex flex-col items-center gap-1" title="Storage: 2.4 GB / 10 GB">
-              <div className="w-10 h-10 rounded-full border-4 border-muted relative flex items-center justify-center">
-                <div 
-                  className="absolute inset-0 rounded-full border-4 border-primary"
-                  style={{ 
-                    clipPath: "polygon(50% 50%, 50% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%, 50% 0%)",
-                    transform: "rotate(86deg)"
-                  }}
-                ></div>
-                <span className="text-xs font-semibold relative z-10">24%</span>
+            <div
+              className="flex flex-col items-center gap-1"
+              title={`Storage: ${usedLabel}`}
+            >
+              <div
+                className="w-10 h-10 rounded-full border-4 border-muted relative flex items-center justify-center"
+                style={{
+                  // simple conic gradient for circular progress:
+                  background: `conic-gradient(#0ea5e9 ${clampedPercent}%, rgba(0,0,0,0.06) ${clampedPercent}%)`,
+                }}
+              >
+                <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center">
+                  <span className="text-xs font-semibold">{clampedPercent}%</span>
+                </div>
               </div>
             </div>
           )}
