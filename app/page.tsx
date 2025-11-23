@@ -1,6 +1,6 @@
 import { AuthButton } from "@/components/auth-button";
 import { ThemeSwitcher } from "@/components/theme-switcher";
-import { QrCode, Upload, Shield, Zap, Link2, FolderOpen } from "lucide-react";
+import { Clock, Upload, Shield, Zap, Link2, FolderOpen } from "lucide-react";
 import { LandingCard } from "@/components/landingCards";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -50,23 +50,7 @@ export default async function Home() {
                   </p>
                 </div>
 
-                <div className="flex justify-center lg:justify-end">
-                  <div className="bg-card border border-border rounded-3xl p-10 shadow-2xl">
-                    <div className="flex flex-col items-center gap-6">
-                      <div className="p-10 bg-muted/50 rounded-2xl border-2 border-dashed border-border">
-                        <QrCode className="w-48 h-48 text-foreground" strokeWidth={1.5} />
-                      </div>
-                      <div className="text-center">
-                        <p className="text-sm text-muted-foreground font-medium mb-2">
-                          Instant file transfer with no sign up
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Click to get QR code
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+             
               </div>
             </div>
           </section>
@@ -76,9 +60,9 @@ export default async function Home() {
             <div className="px-4 md:px-8 lg:px-12">
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                 <LandingCard
-                  icon={QrCode}
-                  title="Instant Transfer"
-                  description="Share files between devices instantly using QR codes. No sign up or login required."
+                  icon={Clock}
+                  title="Share Files Quickly"
+                  description="Share files between devices instantly that expire automatically for enhanced security."
                 />
                 
                 <LandingCard
