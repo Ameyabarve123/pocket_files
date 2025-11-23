@@ -34,6 +34,9 @@ const DataCard = ({
   
   const isImage = file_type.startsWith('image/');
   const [timeRemaining, setTimeRemaining] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isCopying, setIsCopying] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   // Determine file type for icon
   const getFileIcon = () => {
@@ -117,18 +120,26 @@ const DataCard = ({
     return () => clearInterval(interval);
   }, [expires_at]);
 
-  // Copy link to clipboard save for link
+  // Copy text to clipboard save for link
   const handleCopyLink = async () => {
+    setIsCopying(true);
     try {
       await navigator.clipboard.writeText(data);
-      alert('Link copied to clipboard!');
+      if (in_bucket === 1)
+        alert('Shareable Link copied to clipboard!');
+      else
+        alert('Text copied to clipboard!');
     } catch (err) {
       console.error('Failed to copy:', err);
+      alert('Failed to copy');
+    } finally {
+      setIsCopying(false);
     }
   };
 
   // Download file
   const handleDownload = async () => {
+    setIsDownloading(true);
     try {
       const response = await fetch(data);
       const blob = await response.blob();
@@ -143,6 +154,8 @@ const DataCard = ({
     } catch (err) {
       console.error('Download error:', err);
       alert('Failed to download file');
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -150,7 +163,8 @@ const DataCard = ({
   const handleDelete = async () => {
     if (in_bucket === 1){
       if (!confirm('Are you sure you want to delete this file?')) return;
-    
+      
+      setIsDeleting(true);
       try {
         const fileName = encodeURIComponent(bucket_file_path);
 
@@ -166,12 +180,14 @@ const DataCard = ({
       } catch (err) {
         console.error('Delete error:', err);
         alert('Failed to delete file');
+      } finally {
+        setIsDeleting(false);
       }
     } else {
       if (!confirm('Are you sure you want to delete this text?')) return;
-    
+      
+      setIsDeleting(true);
       try {
-
         const res = await fetch(`/api/delete/temp-storage/text/${id}/${uid}`, {
           method: 'DELETE',
         });
@@ -184,9 +200,10 @@ const DataCard = ({
       } catch (err) {
         console.error('Delete error:', err);
         alert('Failed to delete text');
+      } finally {
+        setIsDeleting(false);
       }
     }
-    
   };
   
   return view === "grid" ? (
@@ -209,18 +226,21 @@ const DataCard = ({
         )}
 
         {/* Hover actions (top-right) */}
-        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+        <div className="absolute top-2 right-2 opacity-0 rounded-sm bg-black group-hover:opacity-100 transition-opacity flex items-center gap-1">
           <Button 
             variant="ghost"
             size="icon"
             className="h-7 w-7 p-0"
             onClick={handleCopyLink}
+            disabled={isCopying}
           >
-            {in_bucket === 1 ?
+            {isCopying ? (
+              <span className="text-xs">...</span>
+            ) : in_bucket === 1 ? (
               <Share className="w-4 h-4" />
-              :
+            ) : (
               <Copy className="w-4 h-4" />
-            }
+            )}
           </Button>
 
           {in_bucket === 1 && (
@@ -229,8 +249,13 @@ const DataCard = ({
               size="icon"
               className="h-7 w-7 p-0"
               onClick={handleDownload}
+              disabled={isDownloading}
             >
-              <Download className="w-4 h-4" />
+              {isDownloading ? (
+                <span className="text-xs">...</span>
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
             </Button>
           )}
 
@@ -239,8 +264,13 @@ const DataCard = ({
             size="icon"
             className="h-7 w-7 p-0 text-destructive hover:text-destructive"
             onClick={handleDelete}
+            disabled={isDeleting}
           >
-            <X className="w-4 h-4" />
+            {isDeleting ? (
+              <span className="text-xs">...</span>
+            ) : (
+              <X className="w-4 h-4" />
+            )}
           </Button>
         </div>
       </div>
@@ -305,48 +335,52 @@ const DataCard = ({
           
           {/* Action buttons */}
           <div className="flex items-center gap-2 mt-3">
-            {in_bucket === 1 ?
+            {in_bucket === 1 ? (
               <>
                 <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="h-8 text-xs"
-                    onClick={handleCopyLink}
-                  >
-                    <Share className="w-3 h-3 mr-1" />
-                    Share
-                  </Button> 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-8 text-xs"
+                  onClick={handleCopyLink}
+                  disabled={isCopying}
+                >
+                  <Share className="w-3 h-3 mr-1" />
+                  {isCopying ? 'Copying...' : 'Share'}
+                </Button> 
 
-                  <Button 
+                <Button 
                   variant="outline" 
                   size="sm" 
                   className="h-8 text-xs"
                   onClick={handleDownload}
+                  disabled={isDownloading}
                 >
                   <Download className="w-3 h-3 mr-1" />
-                  Download
+                  {isDownloading ? 'Downloading...' : 'Download'}
                 </Button>
               </>
-              :
+            ) : (
               <Button 
                 variant="outline" 
                 size="sm" 
                 className="h-8 text-xs"
                 onClick={handleCopyLink}
+                disabled={isCopying}
               >
                 <Copy className="w-3 h-3 mr-1" />
-                Copy Text
+                {isCopying ? 'Copying...' : 'Copy Text'}
               </Button>
-            }
+            )}
 
             <Button 
               variant="ghost" 
               size="sm" 
               className="h-8 text-xs text-destructive hover:text-destructive"
               onClick={handleDelete}
+              disabled={isDeleting}
             >
               <X className="w-3 h-3 mr-1" />
-              Delete
+              {isDeleting ? 'Deleting...' : 'Delete'}
             </Button>
           </div>
         </div>

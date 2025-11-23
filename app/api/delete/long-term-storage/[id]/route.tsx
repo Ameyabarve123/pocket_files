@@ -6,32 +6,30 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> } 
 ) {
   try {
-    // Create server Supabase client
     const supabase = await createClient();
-
-    // Get authenticated user
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user?.id) {
       return NextResponse.json({ error: "User not authenticated" }, { status: 401 });
     }
 
-    // Await params first, then access id
     const { id: theId } = await params;
 
-    // Get the node metadata to verify ownership and get bucket info
+    // Get the node metadata to verify ownership
     const { data: node, error: fetchError } = await supabase
       .from("storage_nodes")
       .select("*")
       .eq("id", theId)
-      .eq("uid", user.id) // Ensure user owns this item
+      .eq("uid", user.id)
       .single();
 
     if (fetchError || !node) {
       return NextResponse.json({ error: "Item not found or access denied" }, { status: 404 });
     }
 
-    // If it's a file, delete from storage bucket first
+    let totalBytesDeleted = 0;
+
+    // If it's a file, delete from storage bucket
     if (node.type === "file" && node.bucket && node.bucket_path) {
       const { error: storageError } = await supabase.storage
         .from(node.bucket)
@@ -39,13 +37,14 @@ export async function DELETE(
 
       if (storageError) {
         console.error("Storage deletion error:", storageError);
-        // Continue anyway to delete metadata
       }
+
+      totalBytesDeleted = node.file_size || 0;
     }
 
     // If it's a folder, recursively delete all children
     if (node.type === "folder") {
-      await deleteFolder(supabase, node.id, user.id);
+      totalBytesDeleted = await deleteFolder(supabase, node.id, user.id);
     }
 
     // Delete the metadata from database
@@ -59,6 +58,23 @@ export async function DELETE(
       return NextResponse.json({ error: deleteError.message }, { status: 500 });
     }
 
+    // Update storage once at the end
+    if (totalBytesDeleted > 0) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("storage_used")
+        .eq("id", user.id)
+        .single();
+
+      const currentStorage = profile?.storage_used || 0;
+      const newStorage = Math.max(0, currentStorage - totalBytesDeleted);
+
+      await supabase
+        .from("profiles")
+        .update({ storage_used: newStorage })
+        .eq("id", user.id);
+    }
+
     return NextResponse.json({ success: true, message: "Item deleted successfully" });
   } catch (error) {
     console.error("Delete error:", error);
@@ -67,7 +83,9 @@ export async function DELETE(
 }
 
 // Helper function to recursively delete folder contents
-async function deleteFolder(supabase: any, folderId: string, userId: string) {
+async function deleteFolder(supabase: any, folderId: string, userId: string): Promise<number> {
+  let totalBytesDeleted = 0;
+
   // Get all children of this folder
   const { data: children, error } = await supabase
     .from("storage_nodes")
@@ -77,7 +95,7 @@ async function deleteFolder(supabase: any, folderId: string, userId: string) {
 
   if (error) {
     console.error("Error fetching folder children:", error);
-    return;
+    return 0;
   }
 
   // Delete each child
@@ -87,9 +105,12 @@ async function deleteFolder(supabase: any, folderId: string, userId: string) {
       await supabase.storage
         .from(child.bucket)
         .remove([child.bucket_path]);
+      
+      totalBytesDeleted += child.file_size || 0;
     } else if (child.type === "folder") {
       // Recursively delete subfolder
-      await deleteFolder(supabase, child.id, userId);
+      const subfolderBytes = await deleteFolder(supabase, child.id, userId);
+      totalBytesDeleted += subfolderBytes;
     }
 
     // Delete child metadata
@@ -99,4 +120,6 @@ async function deleteFolder(supabase: any, folderId: string, userId: string) {
       .eq("id", child.id)
       .eq("uid", userId);
   }
+
+  return totalBytesDeleted;
 }
