@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "./ui/button"
-import { Share, Clock, MoreVertical, X, FileText, File, Download, Image, Copy } from "lucide-react"
+import { Share, Clock, MoreVertical, X, FileText, File, Download, Image, Copy, FileCode, FileAudio } from "lucide-react"
 
 interface DataCardProps {
   id: string;
@@ -37,13 +37,25 @@ const DataCard = ({
 
   // Determine file type for icon
   const getFileIcon = () => {
-    if (file_type.startsWith('image/')) {
-      return <Image className="w-5 h-5 text-primary" />;
-    } else if (file_type.includes('pdf') || file_type.includes('document')) {
-      return <FileText className="w-5 h-5 text-primary" />;
-    } else {
-      return <File className="w-5 h-5 text-primary" />;
+    if (file_type) {
+      if (file_type.startsWith('image/')) {
+        return <Image className="w-6 h-6 text-blue-500" />;
+      }
+      if (file_type.startsWith('audio/')) {
+        return <FileAudio className="w-6 h-6 text-pink-500" />;
+      }
+      if (file_type.includes('text') || file_type === 'text/plain') {
+        return <FileText className="w-6 h-6 text-green-500" />;
+      }
+      if (file_type.includes('code') || file_type.includes('javascript') || file_type.includes('json')) {
+        return <FileCode className="w-6 h-6 text-orange-500" />;
+      }
+      if (file_type.includes('pdf')) {
+        return <FileText className="w-6 h-6 text-red-500" />;
+      }
     }
+
+    return <File className="w-6 h-6 text-gray-500" />;
   };
 
   // Format file size

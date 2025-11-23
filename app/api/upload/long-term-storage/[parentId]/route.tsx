@@ -11,7 +11,6 @@ export async function POST(
     const file = formData.get("file") as File;
     const name = formData.get("name") as string;
     const description = formData.get("description") as string;
-    const title = formData.get("title") as string;
       
     // Validate inputs
     if (!file) {
@@ -65,7 +64,6 @@ export async function POST(
         bucket_path: bucketPath,
         mime_type: file.type,
         file_size: file.size,
-        title: title
       })
       .select()
       .single();

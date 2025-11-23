@@ -22,6 +22,7 @@ export default function LongTermStorage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [folderPath, setFolderPath] = useState<Array<{ id: string | null; name: string }>>([
     { id: null, name: "Home" }
   ]);
@@ -147,6 +148,7 @@ export default function LongTermStorage() {
     setFormData({ name: "", description: "", file: null, textContent: "" });
   };
 
+
   const handleSubmit = async () => {
     setIsUploading(true);
 
@@ -190,11 +192,14 @@ export default function LongTermStorage() {
     }
   };
 
-  // Pagination
-  const totalPages = Math.ceil(folders.length / itemsPerPage);
+  const filteredFolders = folders.filter((item) =>
+    item.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const totalPages = Math.ceil(filteredFolders.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentFolders = folders.slice(startIndex, endIndex);
+  const currentFolders = filteredFolders.slice(startIndex, endIndex);
 
   return (
     <div className="flex flex-col gap-12 w-full">
@@ -213,6 +218,11 @@ export default function LongTermStorage() {
           <input
             type="text"
             placeholder="Search your files..."
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
             className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground"
           />
         </div>
@@ -238,29 +248,11 @@ export default function LongTermStorage() {
         </div>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-          <h2 className="text-2xl font-semibold">Your Files & Folders</h2>
+          <h2 className="text-2xl font-semibold">
+            {folderPath[folderPath.length - 1].name}
+          </h2>
           
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            {/* Search */}
-            <div className="flex-1 sm:flex-initial flex items-center gap-2 border border-border rounded-lg px-3 py-2 bg-background min-w-[200px]">
-              <Search className="w-4 h-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search folders..."
-                className="flex-1 bg-transparent outline-none text-sm"
-              />
-            </div>
-
-            {/* View Toggle */}
-            <div className="flex items-center border border-border rounded-lg p-1">
-              <button className="p-1.5 rounded hover:bg-accent transition-colors bg-accent">
-                <Grid3x3 className="w-4 h-4" />
-              </button>
-              <button className="p-1.5 rounded hover:bg-accent transition-colors">
-                <List className="w-4 h-4" />
-              </button>
-            </div>
-
             <Button variant="default" size="sm" onClick={handleOpenDialog}>
               <Plus className="w-4 h-4 mr-2" />
               New
@@ -284,8 +276,11 @@ export default function LongTermStorage() {
                   i={item.name}
                   type={item.type}
                   mimeType={item.mime_type}
-                  onDelete={loadFolders}
+                  description={item.description}
+                  fileSize={item.file_size}
+                  bucket={item.bucket}
                   bucketPath={item.bucket_path}
+                  onDelete={loadFolders}
                   onClick={() => item.type === 'folder' && handleFolderClick(item.id, item.name)}
                 />
               ))}
@@ -302,9 +297,14 @@ export default function LongTermStorage() {
               </button>
             </div>
 
-            {folders.length === 0 && (
+            {filteredFolders.length === 0 && (
               <div className="text-center py-12">
-                <p className="text-muted-foreground">No files or folders yet. Create your first folder or upload a file to get started!</p>
+                <p className="text-muted-foreground">
+                  {searchQuery 
+                    ? `No results found for "${searchQuery}"`
+                    : "No files or folders yet. Create your first folder or upload a file to get started!"
+                  }
+                </p>
               </div>
             )}
           </>
@@ -395,16 +395,6 @@ export default function LongTermStorage() {
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="Enter folder name"
                       className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Description (optional)</label>
-                    <textarea
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      placeholder="Enter description"
-                      className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-                      rows={3}
                     />
                   </div>
                   <div className="flex gap-3 pt-4">

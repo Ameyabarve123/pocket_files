@@ -5,7 +5,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 interface FolderCardProps {
-  i: string;
+  i: string; // title
   id: string;
   type?: string;
   mimeType?: string;
@@ -59,46 +59,47 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
 
   const handleDownloadFile = async () => {
     try {
-      const supabase = createClient();
+      const data = await fetch(`/api/get/long-term-storage/from-bucket/${encodeURIComponent(bucketPath!)}`, {
+        method: "GET"
+      }).then(res => res.json());
       
-      const { data: signedUrl, error } = await supabase.storage
-        .from(bucket!)
-        .createSignedUrl(bucketPath!, 60);
-
-      if (error || !signedUrl) {
-        alert("Error generating download link");
-        return;
-      }
-
-      const link = document.createElement('a');
-      link.href = signedUrl.signedUrl;
-      link.download = i;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (error) {
-      alert("Error downloading file");
+      const response = await fetch(data.url);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = i;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error('Download error:', err);
+      alert('Failed to download file');
     }
   };
 
   const handleCopyContent = async () => {
     try {
-      const supabase = createClient();
-      
-      const { data: signedUrl, error } = await supabase.storage
-        .from(bucket!)
-        .createSignedUrl(bucketPath!, 60);
+      const encodedBucketPath = encodeURIComponent(bucketPath!);
+      const res = await fetch(`/api/get/long-term-storage/from-bucket/${encodedBucketPath}`, {
+        method: "GET"
+      });
 
-      if (error || !signedUrl) {
-        alert("Error fetching file content");
+      if (!res.ok) {
+        alert("Error fetching file content: " + res.statusText);
         return;
       }
 
-      const response = await fetch(signedUrl.signedUrl);
-      const text = await response.text();
+      const { url } = await res.json();
+
+      const fileRes = await fetch(url);
+      const text = await fileRes.text(); 
 
       await navigator.clipboard.writeText(text);
-      alert("Content copied to clipboard!");
+      alert("File content copied to clipboard!");
+
+      return text;
     } catch (error) {
       alert("Error copying content");
     }
@@ -106,21 +107,24 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
 
   const handleShareFile = async () => {
     try {
-      const supabase = createClient();
-      
-      const { data: signedUrl, error } = await supabase.storage
-        .from(bucket!)
-        .createSignedUrl(bucketPath!, 86400);
+      const encodedBucketPath = encodeURIComponent(bucketPath!);
+      const res = await fetch(`/api/get/long-term-storage/from-bucket/${encodedBucketPath}`, {
+        method: "GET"
+      });
 
-      if (error || !signedUrl) {
-        alert("Error generating share link");
+      if (!res.ok) {
+        alert("Error fetching file content: " + res.statusText);
         return;
       }
 
-      await navigator.clipboard.writeText(signedUrl.signedUrl);
-      alert("Share link copied to clipboard! Valid for 24 hours.");
+      const { url } = await res.json();
+
+      await navigator.clipboard.writeText(url);
+      alert("File content copied to clipboard!");
+
+      return url;
     } catch (error) {
-      alert("Error sharing file");
+      alert("Error copying content");
     }
   };
 
@@ -264,15 +268,18 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
               </div>
 
               {/* Action Buttons */}
+              
               <div className="flex flex-col gap-2 pt-4">
-                <Button 
-                  onClick={handleDownloadFile}
-                  className="w-full justify-start"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download File
-                </Button>
-                
+                {!mimeType?.startsWith('text/') && (
+                  <Button 
+                    onClick={handleDownloadFile}
+                    className="w-full justify-start"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download File
+                  </Button>
+                )}
+
                 {mimeType?.startsWith('text/') && (
                   <Button 
                     onClick={handleCopyContent}
