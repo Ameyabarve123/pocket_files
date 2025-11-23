@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> } // Changed: params is now a Promise
+  { params }: { params: Promise<{ id: string }> } 
 ) {
   try {
     // Create server Supabase client
