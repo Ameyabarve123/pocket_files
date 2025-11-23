@@ -21,10 +21,14 @@ export default function LongTermStorage() {
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+  const [folderPath, setFolderPath] = useState<Array<{ id: string | null; name: string }>>([
+    { id: null, name: "Home" }
+  ]);
 
   useEffect(() => {
     loadFolders();
-  }, []);
+  }, [currentFolderId]);
 
   async function loadFolders() {
     setIsLoading(true);
@@ -34,18 +38,32 @@ export default function LongTermStorage() {
       
       if (!user) return;
 
-      // Load both folders and files at root level
-      const { data, error } = await supabase
+      // Build query based on whether we're at root or in a folder
+      let query = supabase
         .from("storage_nodes")
         .select("*")
-        .eq("uid", user.id)
-        .is("parent_id", null) // Only root level items
-        .order("created_at", { ascending: false });
+        .eq("uid", user.id);
+
+      // Use .is() for null, .eq() for actual IDs
+      if (currentFolderId === null) {
+        query = query.is("parent_id", null);
+      } else {
+        query = query.eq("parent_id", currentFolderId);
+      }
+
+      const { data, error } = await query.order("created_at", { ascending: false });
 
       if (error) {
         console.error("Error loading items:", error);
       } else {
-        setFolders(data || []);
+        // Sort so folders appear first, then files
+        const sortedData = (data || []).sort((a, b) => {
+          // If both are same type, maintain creation order
+          if (a.type === b.type) return 0;
+          // Folders first (type === 'folder')
+          return a.type === 'folder' ? -1 : 1;
+        });
+        setFolders(sortedData);
       }
     } catch (error) {
       console.error("Error:", error);
@@ -54,7 +72,7 @@ export default function LongTermStorage() {
     }
   }
 
-  async function createFolder(name: string, uid: any, parentId = null) {
+  async function createFolder(name: string, uid: any, parentId: string | null = null) {
     const supabase = createClient();
     const { data, error } = await supabase
       .from("storage_nodes")
@@ -77,7 +95,7 @@ export default function LongTermStorage() {
     formDataToSend.append("name", name);
     formDataToSend.append("description", description);
 
-    const response = await fetch(`/api/upload/long-term-storage/${parentId || 'NULL'}`, {
+    const response = await fetch(`/api/upload/long-term-storage/${parentId || currentFolderId || 'NULL'}`, {
       method: "POST",
       body: formDataToSend
     });
@@ -94,13 +112,26 @@ export default function LongTermStorage() {
     formDataToSend.append("name", name);
     formDataToSend.append("description", description);
 
-    const response = await fetch(`/api/upload/long-term-storage/${parentId || 'NULL'}`, {
+    const response = await fetch(`/api/upload/long-term-storage/${parentId || currentFolderId || 'NULL'}`, {
       method: "POST",
       body: formDataToSend
     });
 
     return await response.json();
   }
+
+  const handleFolderClick = (folderId: string, folderName: string) => {
+    setCurrentFolderId(folderId);
+    setFolderPath([...folderPath, { id: folderId, name: folderName }]);
+    setCurrentPage(1);
+  };
+
+  const handleBreadcrumbClick = (index: number) => {
+    const newPath = folderPath.slice(0, index + 1);
+    setFolderPath(newPath);
+    setCurrentFolderId(newPath[newPath.length - 1].id);
+    setCurrentPage(1);
+  };
 
   const handleOpenDialog = () => {
     setShowNewDialog(true);
@@ -123,13 +154,13 @@ export default function LongTermStorage() {
       if (dialogMode === "folder") {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
-        const result = await createFolder(formData.name, user?.id);
+        const result = await createFolder(formData.name, user?.id, currentFolderId);
         if (result.error) {
           alert("Error creating folder: " + result.error.message);
         } else {
           alert("Folder created successfully!");
           handleCloseDialog();
-          loadFolders(); // Refresh the folder list
+          loadFolders();
         }
       } else if (dialogMode === "file") {
         if (uploadType === "file" && formData.file) {
@@ -139,7 +170,7 @@ export default function LongTermStorage() {
           } else {
             alert("File uploaded successfully!");
             handleCloseDialog();
-            loadFolders(); // Refresh to show any changes
+            loadFolders();
           }
         } else if (uploadType === "text" && formData.textContent) {
           const result = await uploadText(formData.textContent, formData.name, formData.description);
@@ -148,7 +179,7 @@ export default function LongTermStorage() {
           } else {
             alert("Text uploaded successfully!");
             handleCloseDialog();
-            loadFolders(); // Refresh to show any changes
+            loadFolders();
           }
         }
       }
@@ -189,6 +220,23 @@ export default function LongTermStorage() {
 
       {/* Folders Section */}
       <div>
+        {/* Breadcrumb Navigation */}
+        <div className="mb-4 flex items-center gap-2 text-sm">
+          {folderPath.map((folder, index) => (
+            <div key={index} className="flex items-center gap-2">
+              {index > 0 && <span className="text-muted-foreground">/</span>}
+              <button
+                onClick={() => handleBreadcrumbClick(index)}
+                className={`hover:text-primary transition-colors ${
+                  index === folderPath.length - 1 ? 'font-semibold text-primary' : 'text-muted-foreground'
+                }`}
+              >
+                {folder.name}
+              </button>
+            </div>
+          ))}
+        </div>
+
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <h2 className="text-2xl font-semibold">Your Files & Folders</h2>
           
@@ -229,6 +277,7 @@ export default function LongTermStorage() {
           <>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {currentFolders.map((item) => (
+                console.log(item),
                 <FolderCard 
                   key={item.id}
                   id={item.id}
@@ -236,6 +285,8 @@ export default function LongTermStorage() {
                   type={item.type}
                   mimeType={item.mime_type}
                   onDelete={loadFolders}
+                  bucketPath={item.bucket_path}
+                  onClick={() => item.type === 'folder' && handleFolderClick(item.id, item.name)}
                 />
               ))}
 
