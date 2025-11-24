@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Clock, FolderOpen, Home, Settings, User, ChevronLeft, ChevronRight } from "lucide-react";
+import { FolderOpen, Home, Settings, User, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useStorage } from "@/components/storage-context";
 
 const navItems = [
   {
@@ -31,34 +32,13 @@ function formatBytes(bytes: number) {
 export function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [maxStorage, setMaxStorage] = useState(5 * 1024 * 1024 * 1024);
-  const [currentStorage, setCurrentStorage] = useState(0);
+  
+  // Use storage context instead of local state
+  const { storageUsed, maxStorage, loading } = useStorage();
 
-  useEffect(() => {
-    fetchUserData();
-  }, []);
-  async function fetchUserData() {
-    try {
-      const res = await fetch('/api/get/user-data', {
-        method: 'GET',
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to fetch user data');
-      }
-
-      const data = await res.json();
-      setCurrentStorage(data["user_data"].storage_used);
-      setMaxStorage(data["user_data"].max_storage);
-    } catch (error) {
-      console.error('Error fetching user data:', error);
-    }
-  }
-
-  const percent = maxStorage > 0 ? Math.round((currentStorage / maxStorage) * 100) : 0;
+  const percent = maxStorage > 0 ? Math.round((storageUsed / maxStorage) * 100) : 0;
   const clampedPercent = Math.max(0, Math.min(100, percent));
-  console.log('Storage Used:', currentStorage, 'Max Storage:', maxStorage, 'Percent:', clampedPercent, '%', );
-  const usedLabel = `${formatBytes(currentStorage)} / ${formatBytes(maxStorage)}`;
+  const usedLabel = `${formatBytes(storageUsed)} / ${formatBytes(maxStorage)}`;
 
   return (
     <aside className={cn(
@@ -120,7 +100,9 @@ export function Sidebar() {
       <div className="border-t border-border">
         {/* Storage Usage */}
         <div className={cn("p-4", isCollapsed && "px-2")}>
-          {!isCollapsed ? (
+          {loading ? (
+            <div className="text-center text-xs text-muted-foreground">Loading...</div>
+          ) : !isCollapsed ? (
             <div className="bg-muted/50 rounded-lg p-4 space-y-2">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Storage Used</span>
@@ -128,7 +110,7 @@ export function Sidebar() {
               </div>
               <div className="w-full bg-muted rounded-full h-2">
                 <div
-                  className="bg-primary h-2 rounded-full"
+                  className="bg-primary h-2 rounded-full transition-all duration-300"
                   style={{ width: `${clampedPercent}%` }}
                 ></div>
               </div>
@@ -139,9 +121,8 @@ export function Sidebar() {
               title={`Storage: ${usedLabel}`}
             >
               <div
-                className="w-10 h-10 rounded-full border-4 border-muted relative flex items-center justify-center"
+                className="w-10 h-10 rounded-full border-4 border-muted relative flex items-center justify-center transition-all duration-300"
                 style={{
-                  // simple conic gradient for circular progress:
                   background: `conic-gradient(#0ea5e9 ${clampedPercent}%, rgba(0,0,0,0.06) ${clampedPercent}%)`,
                 }}
               >

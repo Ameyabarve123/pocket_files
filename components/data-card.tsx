@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import { Button } from "./ui/button"
 import { Share, Clock, MoreVertical, X, FileText, File, Download, Image, Copy, FileCode, FileAudio } from "lucide-react"
+import { useStorage
 
+ } from "./storage-context";
 interface DataCardProps {
   id: string;
   uid: string;
@@ -37,6 +39,7 @@ const DataCard = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const { refreshStorage } = useStorage();
 
   // Determine file type for icon
   const getFileIcon = () => {
@@ -79,6 +82,7 @@ const DataCard = ({
           method: 'DELETE',
         });
       }
+      await refreshStorage()
     } catch (err) {
       console.error('Delete error:', err);
       alert('Failed to delete file');
@@ -172,6 +176,7 @@ const DataCard = ({
         
         if (res.ok) {
           alert('File deleted successfully!');
+          await refreshStorage()
         } else {
           alert('Failed to delete file');
         }
@@ -192,6 +197,7 @@ const DataCard = ({
         
         if (res.ok) {
           alert('Text deleted successfully!');
+          await refreshStorage()
         } else {
           alert('Failed to delete text');
         }

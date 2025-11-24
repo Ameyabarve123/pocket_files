@@ -5,6 +5,7 @@ import FolderCard from "@/components/folder-card";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { useState, useEffect } from "react";
+import { useStorage } from "@/components/storage-context";
 
 export default function LongTermStorage() {
   const [showNewDialog, setShowNewDialog] = useState(false);
@@ -26,6 +27,7 @@ export default function LongTermStorage() {
   const [folderPath, setFolderPath] = useState<Array<{ id: string | null; name: string }>>([
     { id: null, name: "Home" }
   ]);
+  const { refreshStorage } = useStorage();
 
   useEffect(() => {
     loadFolders();
@@ -101,6 +103,10 @@ export default function LongTermStorage() {
       body: formDataToSend
     });
 
+    if (!response.ok) {
+      throw new Error('Failed to upload file');
+    }
+    await refreshStorage();
     return await response.json();
   }
 
@@ -118,6 +124,10 @@ export default function LongTermStorage() {
       body: formDataToSend
     });
 
+    if (!response.ok) {
+      throw new Error('Failed to upload text content');
+    }
+    await refreshStorage();
     return await response.json();
   }
 
@@ -171,6 +181,7 @@ export default function LongTermStorage() {
             alert("Error uploading file: " + result.error);
           } else {
             alert("File uploaded successfully!");
+            // router.refresh();
             handleCloseDialog();
             loadFolders();
           }
@@ -191,7 +202,7 @@ export default function LongTermStorage() {
       setIsUploading(false);
     }
   };
-
+  
   const filteredFolders = folders.filter((item) =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -200,7 +211,6 @@ export default function LongTermStorage() {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentFolders = filteredFolders.slice(startIndex, endIndex);
-
   return (
     <div className="flex flex-col gap-12 w-full">
       {/* Page Header with Search */}

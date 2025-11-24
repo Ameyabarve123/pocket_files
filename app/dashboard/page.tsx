@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import DataCard from "@/components/data-card";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useStorage } from '@/components/storage-context'; 
 
 export default function ProtectedPage() {
+  const { refreshStorage } = useStorage();
   const [sharedItems, setSharedItems] = useState<any[] | null>(null);
   const [selectedDuration, setSelectedDuration] = useState(5);
   const [searchQuery, setSearchQuery] = useState("");
@@ -44,6 +46,7 @@ export default function ProtectedPage() {
       getData().then((data) => {
         setSharedItems(data);
       });
+      await refreshStorage()
     } else {
       console.log(result.error);
       alert("Upload failed: " + result.error.message);
@@ -69,6 +72,7 @@ export default function ProtectedPage() {
       getData().then((data) => {
         setSharedItems(data);
       });
+      await refreshStorage()
     } else {
       console.log(result.error.message);
       alert("Upload failed: " + result.error.message);

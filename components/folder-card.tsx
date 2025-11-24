@@ -2,7 +2,7 @@
 import { FolderOpen, FileText, File, Image, FileCode, FileAudio, X, Download, Share2, Copy, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useStorage } from "@/components/storage-context";
 
 interface FolderCardProps {
   i: string; // title
@@ -20,6 +20,7 @@ interface FolderCardProps {
 const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, bucketPath, onDelete, onClick }: FolderCardProps) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showFileDialog, setShowFileDialog] = useState(false);
+  const { refreshStorage } = useStorage();
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -40,6 +41,7 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
       } else {
         if (onDelete) {
           onDelete();
+          await refreshStorage();
         }
       }
     } catch (error) {
@@ -146,6 +148,7 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
         setShowFileDialog(false);
         if (onDelete) {
           onDelete();
+          await refreshStorage();
         }
       }
     } catch (error) {
