@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FolderOpen, Home, Settings, User, ChevronLeft, ChevronRight } from "lucide-react";
+import { Gem, FolderOpen, Home, Settings, User, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { useStorage } from "@/components/storage-context";
@@ -148,6 +148,24 @@ export function Sidebar() {
           >
             <Settings className="w-5 h-5 flex-shrink-0" />
             {!isCollapsed && <span>Settings</span>}
+          </Link>
+        </div>
+
+        <div className="px-4 pb-2">
+          <Link
+            key={"pricing"}
+            href={"/dashboard/pricing"}
+            className={cn(
+              "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
+              pathname === "/dashboard/pricing"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:bg-accent hover:text-foreground",
+              isCollapsed && "justify-center"
+            )}
+            title={isCollapsed ? "Pricing" : undefined}
+          >
+            <span className="w-5 h-5 flex-shrink-0"><Gem className="w-5 h-5 flex-shrink-0"></Gem></span>
+            {!isCollapsed && <span>Pricing</span>}
           </Link>
         </div>
 
