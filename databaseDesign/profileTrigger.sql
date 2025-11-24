@@ -18,3 +18,5 @@ BEGIN
   RETURN NEW;
 END;
 $$;
+
+-- Not in this, will add later: TODO: email also gets inserted.

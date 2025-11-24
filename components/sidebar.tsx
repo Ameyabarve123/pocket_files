@@ -33,7 +33,8 @@ export function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
   
-  const { storageUsed, maxStorage, loading } = useStorage();
+  const { storageUsed, maxStorage, loading, userName, email, profilePicture} = useStorage();
+        console.log(profilePicture);
 
   const percent = Math.round((storageUsed / maxStorage) * 100);
   const usedLabel = `${formatBytes(storageUsed)} / ${formatBytes(maxStorage)}`;
@@ -180,12 +181,15 @@ export function Sidebar() {
             title={isCollapsed ? "Profile" : undefined}
           >
             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <User className="w-5 h-5 text-primary" />
+            {profilePicture != "" ? <img src={profilePicture} alt="Profile" className="rounded-lg text-primary" /> :
+            <User className="w-5 h-5 text-primary" />
+            }
+              
             </div>
             {!isCollapsed && (
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold truncate">John Doe</p>
-                <p className="text-xs text-muted-foreground truncate">john@example.com</p>
+                <p className="text-sm font-semibold truncate">{userName}</p>
+                <p className="text-xs text-muted-foreground truncate">{email}</p>
               </div>
             )}
           </Link>

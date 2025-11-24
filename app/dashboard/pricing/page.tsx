@@ -7,21 +7,23 @@ import PricingCard from "@/components/pricing-card";
 export default function pricing() {
   const bulletJson = {
     "Free Plan": [
-      "5 GB of storage",
+      "1 GB of storage",
       "Access to temporary storage, long-term storage, and sharing",
       "Max upload size of 5mb"
     ],
     "Pro Plan": [
       "Everything in Free Plan",
+      "10 GB of storage",
       "Max upload size of 1GB",
       "No ads",
       "View videos on website"
     ],
     "Premium Plan": [
       "Everything in Pro Plan",
+      "15 GB of storage",
       "Max upload size of 5GB",
       "Upload videos",
-      "AI search for for uploads"
+      "AI search for your uploads"
     ]
   }
 
