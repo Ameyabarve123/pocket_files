@@ -68,7 +68,18 @@ export async function DELETE(req: NextRequest) {
       .delete()
       .eq("id", user.id);
 
-    // 7. Delete auth user using admin client
+    // 7. Delete profile picture
+    const filePath = `${user.id}/profile`;
+    const { data, error } = await supabase
+      .storage
+      .from("profile_images")
+      .remove([filePath])
+    
+    if (error) {
+      return NextResponse.json({ error: "Failed to delete pfp" }, { status: 500});
+    }
+
+    // 8. Delete auth user using admin client
     const adminClient = createAdminClient();
     const { error: deleteError } = await adminClient.auth.admin.deleteUser(user.id);
 

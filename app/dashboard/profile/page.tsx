@@ -141,21 +141,18 @@ export default function Profile() {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) return;
-      const fileType = (profilePicture.type).split("/")[1].trim();
-      console.log("filetype", fileType);
+      
+      // ALWAYS use the same filename regardless of uploaded file type
+      const fileName = `${user.id}/profile`;  // No extension!
+      // OR use: const fileName = `${user.id}/profile.jpg`; // Fixed extension
 
-      const fileName = `${user.id}/profile.png`;
-      console.log(fileName);
-
-      // Delete existing file if it exists (ignore errors if file doesn't exist)
-      await supabase.storage
-        .from('profile_images')
-        .remove([fileName]);
-
-      // Upload new file
+      // Upload with upsert - will replace if exists
       const { error: uploadError } = await supabase.storage
         .from('profile_images')
-        .upload(fileName, profilePicture);
+        .upload(fileName, profilePicture, { 
+          upsert: true,
+          contentType: profilePicture.type  // Browser will still serve it correctly
+        });
 
       if (uploadError) {
         console.error("Upload error details:", uploadError);
@@ -163,21 +160,23 @@ export default function Profile() {
         return;
       }
 
-      // Get public URL
+      // Get public URL (add timestamp to bust cache)
       const { data: { publicUrl } } = supabase.storage
         .from('profile_images')
         .getPublicUrl(fileName);
+      
+      const urlWithCacheBust = `${publicUrl}?t=${Date.now()}`;
 
       // Update profile
       const { error: updateError } = await supabase
         .from("profiles")
-        .update({ profile_picture: publicUrl })
+        .update({ profile_picture: urlWithCacheBust })
         .eq("id", user.id);
 
       if (updateError) {
         alert("Error updating profile: " + updateError.message);
       } else {
-        setProfilePictureUrl(publicUrl);
+        setProfilePictureUrl(urlWithCacheBust);
         alert("Profile picture updated successfully!");
         setProfilePicture(null);
         await refreshStorage();
@@ -213,7 +212,7 @@ export default function Profile() {
         <div className="border border-border rounded-lg p-6 space-y-4">
           <div className="flex items-center gap-4">
             <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center overflow-hidden">
-              {profilePictureUrl ? (
+              {profilePictureUrl != '""' ? (
                 <img src={profilePictureUrl} alt="Profile" className="w-full h-full object-cover" />
               ) : (
                 <User className="w-10 h-10 text-muted-foreground" />
