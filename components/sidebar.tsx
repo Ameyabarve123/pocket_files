@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FolderOpen, Home, Settings, User, ChevronLeft, ChevronRight } from "lucide-react";
+import { Gem, FolderOpen, Home, Settings, User, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { useStorage } from "@/components/storage-context";
@@ -33,7 +33,8 @@ export function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
   
-  const { storageUsed, maxStorage, loading } = useStorage();
+  const { storageUsed, maxStorage, loading, userName, email, profilePicture} = useStorage();
+        console.log(profilePicture);
 
   const percent = Math.round((storageUsed / maxStorage) * 100);
   const usedLabel = `${formatBytes(storageUsed)} / ${formatBytes(maxStorage)}`;
@@ -151,6 +152,24 @@ export function Sidebar() {
           </Link>
         </div>
 
+        <div className="px-4 pb-2">
+          <Link
+            key={"pricing"}
+            href={"/dashboard/pricing"}
+            className={cn(
+              "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
+              pathname === "/dashboard/pricing"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:bg-accent hover:text-foreground",
+              isCollapsed && "justify-center"
+            )}
+            title={isCollapsed ? "Pricing" : undefined}
+          >
+            <span className="w-5 h-5 flex-shrink-0"><Gem className="w-5 h-5 flex-shrink-0"></Gem></span>
+            {!isCollapsed && <span>Pricing</span>}
+          </Link>
+        </div>
+
         {/* Profile */}
         <div className="p-4 border-t border-border">
           <Link
@@ -162,12 +181,15 @@ export function Sidebar() {
             title={isCollapsed ? "Profile" : undefined}
           >
             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <User className="w-5 h-5 text-primary" />
+            {profilePicture != "" ? <img src={profilePicture} alt="Profile" className="rounded-lg text-primary" /> :
+            <User className="w-5 h-5 text-primary" />
+            }
+              
             </div>
             {!isCollapsed && (
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold truncate">John Doe</p>
-                <p className="text-xs text-muted-foreground truncate">john@example.com</p>
+                <p className="text-sm font-semibold truncate">{userName}</p>
+                <p className="text-xs text-muted-foreground truncate">{email}</p>
               </div>
             )}
           </Link>

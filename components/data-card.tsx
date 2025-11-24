@@ -230,7 +230,7 @@ const DataCard = ({
         )}
 
         {/* Hover actions (top-right) */}
-        <div className="absolute top-2 right-2 opacity-0 rounded-sm bg-black group-hover:opacity-100 transition-opacity flex items-center gap-1">
+        <div className="absolute top-2 right-2 opacity-0 rounded-sm bg-muted group-hover:opacity-100 transition-opacity flex items-center gap-1">
           <Button 
             variant="ghost"
             size="icon"
