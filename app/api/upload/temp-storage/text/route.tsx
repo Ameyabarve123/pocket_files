@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
       .single();
 
     const currentStorage = profile?.storage_used || 0;
-    const maxStorage = profile?.max_storage || 5 * 1024 * 1024 * 1024; // Default to 5 GB if not set
+    const maxStorage = profile?.max_storage || 5368709120; // Default to 5 GB if not set
     const newStorage = currentStorage + byteSize;
 
     if (newStorage > maxStorage) {

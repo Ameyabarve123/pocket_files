@@ -33,12 +33,11 @@ export function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
   
-  // Use storage context instead of local state
   const { storageUsed, maxStorage, loading } = useStorage();
 
-  const percent = maxStorage > 0 ? Math.round((storageUsed / maxStorage) * 100) : 0;
-  const clampedPercent = Math.max(0, Math.min(100, percent));
+  const percent = Math.round((storageUsed / maxStorage) * 100);
   const usedLabel = `${formatBytes(storageUsed)} / ${formatBytes(maxStorage)}`;
+  const clampedPercent = Math.max(0, Math.min(100, percent));
 
   return (
     <aside className={cn(
@@ -121,7 +120,7 @@ export function Sidebar() {
               title={`Storage: ${usedLabel}`}
             >
               <div
-                className="w-10 h-10 rounded-full border-4 border-muted relative flex items-center justify-center transition-all duration-300"
+                className="w-10 h-10 rounded-full p-6 border-4 border-muted relative flex items-center justify-center transition-all duration-300"
                 style={{
                   background: `conic-gradient(#0ea5e9 ${clampedPercent}%, rgba(0,0,0,0.06) ${clampedPercent}%)`,
                 }}
