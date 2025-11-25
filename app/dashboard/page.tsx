@@ -5,6 +5,7 @@ import DataCard from "@/components/data-card";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useStorage } from '@/components/storage-context'; 
+import CustomModal from "@/components/custom-modal";
 
 export default function ProtectedPage() {
   const { refreshStorage } = useStorage();
@@ -12,6 +13,7 @@ export default function ProtectedPage() {
   const [selectedDuration, setSelectedDuration] = useState(5);
   const [searchQuery, setSearchQuery] = useState("");
   const [view, setView] = useState<"grid" | "list">("grid");
+  const [modalOpen, setModalOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [textInput, setTextInput] = useState("");
