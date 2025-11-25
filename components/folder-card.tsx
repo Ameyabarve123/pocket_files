@@ -6,7 +6,7 @@ import { useStorage } from "@/components/storage-context";
 
 interface FolderCardProps {
   i: string; // title
-  id: string;
+  id: string; // folderId
   type?: string;
   mimeType?: string;
   description?: string;

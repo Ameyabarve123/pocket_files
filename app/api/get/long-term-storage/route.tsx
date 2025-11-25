@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { parentId: string } }
 ) {
 
   try {
