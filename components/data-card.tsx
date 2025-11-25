@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "./ui/button"
-import { Share, Clock, MoreVertical, X, FileText, File, Download, Image, Copy, FileCode, FileAudio } from "lucide-react"
-import { useStorage
+import { Share, Clock, MoreVertical, X, FileText, File, Download, Image as ImageIcon, Copy, FileCode, FileAudio } from "lucide-react"
+import { useStorage } from "./storage-context";
+import Image from "next/image";
 
- } from "./storage-context";
 interface DataCardProps {
   id: string;
   uid: string;
@@ -45,7 +45,7 @@ const DataCard = ({
   const getFileIcon = () => {
     if (file_type) {
       if (file_type.startsWith('image/')) {
-        return <Image className="w-6 h-6 text-blue-500" />;
+        return <ImageIcon className="w-6 h-6 text-blue-500" />;
       }
       if (file_type.startsWith('audio/')) {
         return <FileAudio className="w-6 h-6 text-pink-500" />;
@@ -218,9 +218,11 @@ const DataCard = ({
       {/* Image / Icon */}
       <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-muted flex items-center justify-center">
         {isImage ? (
-          <img 
+          <Image 
             src={data}
             alt={file_name}
+            width={500}
+            height={500}
             className="object-contain w-full h-full"
           />
         ) : (
