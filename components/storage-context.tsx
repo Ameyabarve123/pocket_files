@@ -11,6 +11,7 @@ interface StorageContextType {
   email: string;
   loading: boolean;
   profilePicture: string;
+  subType: number;
 }
 
 const StorageContext = createContext<StorageContextType | undefined>(undefined);
@@ -23,6 +24,7 @@ export function StorageProvider({ children }: { children: ReactNode }) {
   const [email, setEmail] = useState("")
   const [userName, setUserName] = useState("");
   const [profilePicture, setProfilePicture] = useState("");
+  const [subType, setSubType] = useState(0);
 
   const refreshStorage = async () => {
     try {
@@ -33,7 +35,7 @@ export function StorageProvider({ children }: { children: ReactNode }) {
 
       const { data } = await supabase
         .from("profiles")
-        .select("storage_used, max_storage, username, email, profile_picture")
+        .select("storage_used, max_storage, username, email, profile_picture, subscription_type")
         .eq("id", user.id)
         .single();
 
@@ -43,6 +45,7 @@ export function StorageProvider({ children }: { children: ReactNode }) {
         setEmail(data.email);
         setUserName(data.username);
         setProfilePicture(data.profile_picture);
+        setSubType(data.subscription_type);
       }
     } catch (error) {
       console.error('Error fetching storage:', error);
@@ -56,7 +59,7 @@ export function StorageProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <StorageContext.Provider value={{ storageUsed, maxStorage, refreshStorage, userName, email, loading, profilePicture }}>
+    <StorageContext.Provider value={{ storageUsed, maxStorage, refreshStorage, userName, email, loading, profilePicture, subType }}>
       {children}
     </StorageContext.Provider>
   );
