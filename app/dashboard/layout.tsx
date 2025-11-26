@@ -2,6 +2,7 @@ import { AuthButton } from "@/components/auth-button";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Sidebar } from "@/components/sidebar";
 import { StorageProvider } from '@/components/storage-context';
+import { AlertProvider } from "@/components/alert-context";
 
 
 
@@ -31,7 +32,9 @@ export default function ProtectedLayout({
           {/* Main Content */}
           <div className="flex-1 flex flex-col">
             <div className="flex-1 max-w-7xl w-full mx-auto p-8">
-              {children}
+              <AlertProvider>
+                {children}
+              </AlertProvider>
             </div>
 
             {/* Footer */}

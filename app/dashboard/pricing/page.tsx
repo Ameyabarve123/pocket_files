@@ -1,6 +1,7 @@
 import PricingCard from "@/components/pricing-card";
 
 export default function pricing() {
+  
   const bulletJson = {
     "Free Plan": [
       "250 MB of storage",
