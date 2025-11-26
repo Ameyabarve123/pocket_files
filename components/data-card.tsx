@@ -212,6 +212,7 @@ const DataCard = ({
         setIsDeleting(false);
       }
     }
+    setConfirmAction(false);
   };
 
   const {showAlert } = useAlert();
