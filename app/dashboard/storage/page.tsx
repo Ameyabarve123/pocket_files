@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { useState, useEffect } from "react";
 import { useStorage } from "@/components/storage-context";
+import { useAlert } from "@/components/use-alert";
+
 
 export default function LongTermStorage() {
   const [showNewDialog, setShowNewDialog] = useState(false);
@@ -28,6 +30,8 @@ export default function LongTermStorage() {
     { id: null, name: "Home" }
   ]);
   const { refreshStorage } = useStorage();
+  const { showAlert } = useAlert();
+
 
   useEffect(() => {
     loadFolders();
@@ -168,9 +172,10 @@ export default function LongTermStorage() {
         const { data: { user } } = await supabase.auth.getUser();
         const result = await createFolder(formData.name, user?.id, currentFolderId);
         if (result.error) {
-          alert("Error creating folder: " + result.error.message);
+          const errorMsg:string = `Error creating folder: ${result.error.message}` 
+          showAlert('Error', errorMsg);
         } else {
-          alert("Folder created successfully!");
+          showAlert('Success', "Folder created successfully!");
           handleCloseDialog();
           loadFolders();
         }
@@ -178,26 +183,27 @@ export default function LongTermStorage() {
         if (uploadType === "file" && formData.file) {
           const result = await uploadFile(formData.file, formData.name, formData.description);
           if (result.error) {
-            alert("Error uploading file: " + result.error);
+            const errorMsg:string = `Error uploading file: ${result.error.message}` 
+            showAlert('Error', errorMsg);
           } else {
-            alert("File uploaded successfully!");
-            // router.refresh();
+            showAlert('Success', "File uploaded successfully!");
             handleCloseDialog();
             loadFolders();
           }
         } else if (uploadType === "text" && formData.textContent) {
           const result = await uploadText(formData.textContent, formData.name, formData.description);
           if (result.error) {
-            alert("Error uploading text: " + result.error);
+            const errorMsg:string = `Error uploading text: ${result.error.message}` 
+            showAlert('Error', errorMsg);
           } else {
-            alert("Text uploaded successfully!");
+            showAlert('Success', "Text uploaded successfully!");
             handleCloseDialog();
             loadFolders();
           }
         }
       }
     } catch (error) {
-      alert("An error occurred");
+      showAlert('Error', "An error occurred");
     } finally {
       setIsUploading(false);
     }

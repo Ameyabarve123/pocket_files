@@ -66,3 +66,29 @@
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes slideInOut {
+  0% {
+    right: -500px;
+    opacity: 1;
+  }
+  10% {
+    right: 20px;
+    opacity: 1;
+  }
+  90% {
+    right: 20px;
+    opacity: 1;
+  }
+  100% {
+    right: -500px;
+    opacity: 1;
+  }
+}
+
+.alert-box {
+  position: fixed;
+  top: 50px;
+  right: -500px;
+  animation: slideInOut 4s ease-in-out forwards;
+}

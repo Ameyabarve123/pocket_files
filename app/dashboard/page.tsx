@@ -5,7 +5,6 @@ import DataCard from "@/components/data-card";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useStorage } from '@/components/storage-context'; 
-import CustomModal from "@/components/custom-modal";
 
 export default function ProtectedPage() {
   const { refreshStorage } = useStorage();
