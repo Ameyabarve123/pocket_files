@@ -6,6 +6,7 @@ import { Share, Clock, MoreVertical, X, FileText, File, Download, Image as Image
 import { useStorage } from "./storage-context";
 import Image from "next/image";
 import { useAlert } from "./use-alert";
+import Modal from "./modal";
 
 interface DataCardProps {
   id: string;
@@ -40,6 +41,8 @@ const DataCard = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [openModal, setOpenModal] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(false);
   const { refreshStorage } = useStorage();
 
   // Determine file type for icon
@@ -125,6 +128,10 @@ const DataCard = ({
     return () => clearInterval(interval);
   }, [expires_at]);
 
+  useEffect(() => {
+    handleDelete();
+  }, [confirmAction]);
+
   // Copy text to clipboard save for link
   const handleCopyLink = async () => {
     setIsCopying(true);
@@ -133,10 +140,10 @@ const DataCard = ({
       if (in_bucket === 1)
         showAlert("Warning", 'Shareable Link copied to clipboard! NOTE: EVEN IF YOU DELETE THE FILE, THE LINK WILL STILL WORK UNTIL EXPIRATION.');
       else
-        alert('Text copied to clipboard!');
+        showAlert('Success', 'Text copied to clipboard!');
     } catch (err) {
       console.error('Failed to copy:', err);
-      alert('Failed to copy');
+      showAlert('Error', 'Failed to copy');
     } finally {
       setIsCopying(false);
     }
@@ -157,8 +164,7 @@ const DataCard = ({
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (err) {
-      console.error('Download error:', err);
-      alert('Failed to download file');
+      showAlert('Error', 'Failed to download file');
     } finally {
       setIsDownloading(false);
     }
@@ -166,9 +172,8 @@ const DataCard = ({
 
   // Delete file
   const handleDelete = async () => {
-    if (in_bucket === 1){
-      if (!confirm('Are you sure you want to delete this file?')) return;
-      
+  if (in_bucket === 1){
+      if (!confirmAction) return;
       setIsDeleting(true);
       try {
         const res = await fetch(`/api/delete/temp-storage/file/${id}`, {
@@ -218,6 +223,14 @@ const DataCard = ({
       key={id}
       className="bg-card border border-border rounded-xl p-3 hover:shadow-md transition-shadow group flex flex-col"
     >
+      {openModal && 
+        <Modal 
+          onClose={() => setOpenModal(false)}
+          giveVal={setConfirmAction}
+          title={"Confirm delete"}>
+            <p>This action is permanent</p>
+        </Modal>
+      }
       {/* Image / Icon */}
       <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-muted flex items-center justify-center">
         {isImage ? (
@@ -272,7 +285,8 @@ const DataCard = ({
             variant="ghost"
             size="icon"
             className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-            onClick={handleDelete}
+            // onClick={handleDelete}
+            onClick={() => setOpenModal(true)}
             disabled={isDeleting}
           >
             {isDeleting ? (

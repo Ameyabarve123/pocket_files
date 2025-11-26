@@ -70,19 +70,19 @@
 @keyframes slideInOut {
   0% {
     right: -500px;
-    opacity: 1;
+    opacity: 100;
   }
   10% {
     right: 20px;
-    opacity: 1;
+    opacity: 100;
   }
   90% {
     right: 20px;
-    opacity: 1;
+    opacity: 100;
   }
   100% {
     right: -500px;
-    opacity: 1;
+    opacity: 100;
   }
 }
 

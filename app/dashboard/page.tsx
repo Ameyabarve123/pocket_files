@@ -2,7 +2,7 @@
 import { Upload, Send, Search, Grid3x3, List, Link as LinkIcon, Image, File, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DataCard from "@/components/data-card";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useStorage } from '@/components/storage-context'; 
 import { useAlert } from "@/components/use-alert";
@@ -13,7 +13,6 @@ export default function ProtectedPage() {
   const [selectedDuration, setSelectedDuration] = useState(5);
   const [searchQuery, setSearchQuery] = useState("");
   const [view, setView] = useState<"grid" | "list">("grid");
-  const [modalOpen, setModalOpen] = useState(false);
   const {showAlert } = useAlert();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -337,6 +336,7 @@ export default function ProtectedPage() {
           </p>
         </div>
       </div>
+      <div id="modal-root"></div>
     </div>
   );
 }
