@@ -181,19 +181,18 @@ const DataCard = ({
         });
         
         if (res.ok) {
-          alert('File deleted successfully!');
+          showAlert('Success', 'File deleted successfully!');
           await refreshStorage()
         } else {
-          alert('Failed to delete file');
+          showAlert('Error', 'Failed to delete file');
         }
       } catch (err) {
-        console.error('Delete error:', err);
-        alert('Failed to delete file');
+        showAlert('Error', `Failed to delete file ${err}`);
       } finally {
         setIsDeleting(false);
       }
     } else {
-      if (!confirm('Are you sure you want to delete this text?')) return;
+      if (!confirmAction) return;
       
       setIsDeleting(true);
       try {
@@ -202,14 +201,13 @@ const DataCard = ({
         });
         
         if (res.ok) {
-          alert('Text deleted successfully!');
+          showAlert('Success', 'Text deleted successfully!');
           await refreshStorage()
         } else {
-          alert('Failed to delete text');
+          showAlert('Error', 'Failed to delete text');
         }
       } catch (err) {
-        console.error('Delete error:', err);
-        alert('Failed to delete text');
+        showAlert('Error', `Failed to delete text ${err}`);
       } finally {
         setIsDeleting(false);
       }
@@ -285,7 +283,6 @@ const DataCard = ({
             variant="ghost"
             size="icon"
             className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-            // onClick={handleDelete}
             onClick={() => setOpenModal(true)}
             disabled={isDeleting}
           >
@@ -399,7 +396,7 @@ const DataCard = ({
               variant="ghost" 
               size="sm" 
               className="h-8 text-xs text-destructive hover:text-destructive"
-              onClick={handleDelete}
+              onClick={() => setOpenModal(true)}
               disabled={isDeleting}
             >
               <X className="w-3 h-3 mr-1" />
