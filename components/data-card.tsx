@@ -5,6 +5,7 @@ import { Button } from "./ui/button"
 import { Share, Clock, MoreVertical, X, FileText, File, Download, Image as ImageIcon, Copy, FileCode, FileAudio } from "lucide-react"
 import { useStorage } from "./storage-context";
 import Image from "next/image";
+import { useAlert } from "./use-alert";
 
 interface DataCardProps {
   id: string;
@@ -130,7 +131,7 @@ const DataCard = ({
     try {
       await navigator.clipboard.writeText(data);
       if (in_bucket === 1)
-        alert('Shareable Link copied to clipboard! NOTE: EVEN IF YOU DELETE THE FILE, THE LINK WILL STILL WORK UNTIL EXPIRATION.');
+        showAlert("Warning", 'Shareable Link copied to clipboard! NOTE: EVEN IF YOU DELETE THE FILE, THE LINK WILL STILL WORK UNTIL EXPIRATION.');
       else
         alert('Text copied to clipboard!');
     } catch (err) {
@@ -209,6 +210,8 @@ const DataCard = ({
       }
     }
   };
+
+  const {showAlert } = useAlert();
   
   return view === "grid" ? (
     <div 

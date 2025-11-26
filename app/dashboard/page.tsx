@@ -5,6 +5,7 @@ import DataCard from "@/components/data-card";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useStorage } from '@/components/storage-context'; 
+import { useAlert } from "@/components/use-alert";
 
 export default function ProtectedPage() {
   const { refreshStorage } = useStorage();
@@ -13,6 +14,7 @@ export default function ProtectedPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [view, setView] = useState<"grid" | "list">("grid");
   const [modalOpen, setModalOpen] = useState(false);
+  const {showAlert } = useAlert();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [textInput, setTextInput] = useState("");
@@ -43,14 +45,15 @@ export default function ProtectedPage() {
 
     const result = await res.json();
     if (res.ok) {
-      alert("File uploaded successfully!");
+      showAlert("Success", "File uploaded successfully!");
       getData().then((data) => {
         setSharedItems(data);
       });
       await refreshStorage()
     } else {
       console.log(result.error);
-      alert("Upload failed: " + result.error.message);
+      const errorMsg:string = `Upload failed: ${result.error.message}`;
+      showAlert("Error", errorMsg);
     }
   }
 
@@ -68,7 +71,7 @@ export default function ProtectedPage() {
 
     const result = await res.json();
     if (res.ok) {
-      alert("Text uploaded successfully!");
+      showAlert("Success", "Text uploaded successfully");
       setTextInput("");
       getData().then((data) => {
         setSharedItems(data);
@@ -76,7 +79,8 @@ export default function ProtectedPage() {
       await refreshStorage()
     } else {
       console.log(result.error.message);
-      alert("Upload failed: " + result.error.message);
+      const errorMsg:string = `Upload failed: ${result.error.message}`;
+      showAlert("Error", errorMsg);
     }
   }
 
