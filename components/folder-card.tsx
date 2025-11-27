@@ -25,7 +25,6 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
   const [showFileDialog, setShowFileDialog] = useState(false);
   const [openModal, setOpenModal] = useState(false);
   const [confirmFolderAction, setConfirmFolderAction] = useState(false);
-  const [confirmTextAction, setConfirmTextAction] = useState(false);
   const { refreshStorage } = useStorage();
   const { showAlert } = useAlert();
 
@@ -57,35 +56,6 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
     } finally {
       setIsDeleting(false);
       setOpenModal(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    console.log("entered", confirmFolderAction)
-    
-    if(!confirmFolderAction) return;
-    console.log("confirmFolderAction", confirmFolderAction)
-
-    setIsDeleting(true);
-    try {
-      const response = await fetch(`/api/delete/long-term-storage/${id}`, {
-        method: "DELETE"
-      });
-
-      const result = await response.json();
-
-      if (result.error) {
-        showAlert('Error', `Error deleting: ${result.error}`);
-      } else {
-        if (onDelete) {
-          onDelete();
-          await refreshStorage();
-        }
-      }
-    } catch (error) {
-      showAlert('Error', "An error occurred while deleting");
-    } finally {
-      setIsDeleting(false);
     }
   };
 

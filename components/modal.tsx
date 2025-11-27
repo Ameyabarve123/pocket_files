@@ -5,12 +5,13 @@ import { X, Check } from "lucide-react";
 
 type ModalProps = {
   onClose: () => void;
-  giveVal: (value: boolean) => void;
+  giveVal?: (value: boolean) => void;
+  giveVal2?: (value: boolean, value2:boolean) => void;
   children: React.ReactNode;
   title?: string;
 };
 
-const Modal: React.FC<ModalProps> = ({ onClose, giveVal, children, title }) => {
+const Modal: React.FC<ModalProps> = ({ onClose, giveVal, giveVal2, children, title }) => {
   const [mounted, setMounted] = React.useState(false);
 
   useEffect(() => {
@@ -25,13 +26,15 @@ const Modal: React.FC<ModalProps> = ({ onClose, giveVal, children, title }) => {
 
   const handleCloseClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    giveVal(false);
+    if(giveVal) giveVal(false);
+    if(giveVal2) giveVal2(false, false); 
     onClose();
   };
 
   const handleOkayClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    giveVal(true);
+    if (giveVal) giveVal(true);
+    if(giveVal2) giveVal2(true, true);
     onClose();
   }
 
