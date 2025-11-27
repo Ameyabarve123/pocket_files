@@ -2,7 +2,7 @@
 import { Upload, Send, Search, Grid3x3, List, Link as LinkIcon, Image, File, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DataCard from "@/components/data-card";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useStorage } from '@/components/storage-context'; 
 import { useAlert } from "@/components/use-alert";
@@ -13,6 +13,8 @@ export default function ProtectedPage() {
   const [selectedDuration, setSelectedDuration] = useState(5);
   const [searchQuery, setSearchQuery] = useState("");
   const [view, setView] = useState<"grid" | "list">("grid");
+  const [uploadImage, setUploadImage] = useState(false);
+  const [uploadText, setUploadText] = useState(false);
   const {showAlert } = useAlert();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -32,6 +34,7 @@ export default function ProtectedPage() {
   async function uploadImageClient(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    setUploadImage(true);
 
     const formData = new FormData();
     formData.append("file", file);
@@ -54,11 +57,12 @@ export default function ProtectedPage() {
       const errorMsg:string = `Upload failed: ${result.error.message}`;
       showAlert("Error", errorMsg);
     }
+    setUploadImage(false);
   }
 
   async function uploadTextClient() {
     if (textInput == "") return;
-
+    setUploadText(true);
     const formData = new FormData();
     formData.append("text", textInput);
     formData.append("duration", selectedDuration.toString());
@@ -81,6 +85,7 @@ export default function ProtectedPage() {
       const errorMsg:string = `Upload failed: ${result.error.message}`;
       showAlert("Error", errorMsg);
     }
+    setUploadText(false);
   }
 
   async function getData() {
@@ -291,18 +296,30 @@ export default function ProtectedPage() {
                 ref={fileInputRef}
                 className="hidden"
                 onChange={uploadImageClient}
+                disabled={uploadImage}
               />
 
               {/* Upload button */}
-              <Button
-                variant="outline"
-                size="lg"
-                className="gap-2"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="w-4 h-4" />
-                Upload File
-              </Button>
+              {!uploadImage ?
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="gap-2"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="w-4 h-4" />
+                  Upload File
+                </Button>
+              :
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="gap-2"
+                  disabled={true}
+                >
+                  Uploading File...
+                </Button>
+              }
 
               {/* Input */}
               <div className="flex-1 flex items-center gap-3 border border-border rounded-lg px-4 py-3 bg-background focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 transition-all">
@@ -318,15 +335,26 @@ export default function ProtectedPage() {
                     }
                   }}
                 />
-                <Button 
-                  size="sm" 
-                  className="gap-2"
-                  onClick={uploadTextClient}
-                  >
-                  <Send className="w-4 h-4" 
-                />
-                  Share
-                </Button>
+                {!uploadText ?
+                  <Button 
+                    size="sm" 
+                    className="gap-2"
+                    onClick={uploadTextClient}
+                    >
+                    <Send className="w-4 h-4" 
+                  />
+                    Share
+                  </Button>
+                :
+                  <Button 
+                    size="sm" 
+                    className="gap-2"
+                    disabled={true}
+                    >
+                    Sharing
+                  </Button>
+                }
+                
               </div>
             </div>
           </div>

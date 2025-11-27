@@ -4,8 +4,6 @@ import { Sidebar } from "@/components/sidebar";
 import { StorageProvider } from '@/components/storage-context';
 import { AlertProvider } from "@/components/alert-context";
 
-
-
 export default function ProtectedLayout({
   children,
 }: {
