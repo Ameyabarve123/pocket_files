@@ -248,23 +248,25 @@ const DataCard = ({
 
         {/* Hover actions (top-right) */}
         <div className="absolute top-2 right-2 opacity-0 rounded-sm bg-muted group-hover:opacity-100 transition-opacity flex items-center gap-1">
-          <Button 
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 p-0"
-            onClick={handleCopyLink}
-            disabled={isCopying}
-          >
-            {isCopying ? (
-              <span className="text-xs">...</span>
-            ) : in_bucket === 1 ? (
-              <Share className="w-4 h-4" />
-            ) : (
-              <Copy className="w-4 h-4" />
-            )}
-          </Button>
+          {!isDeleting &&
+            <Button 
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 p-0"
+              onClick={handleCopyLink}
+              disabled={isCopying}
+            >
+              {isCopying ? (
+                <span className="text-xs">...</span>
+              ) : in_bucket === 1 ? (
+                <Share className="w-4 h-4" />
+              ) : (
+                <Copy className="w-4 h-4" />
+              )}
+            </Button>
+          }
 
-          {in_bucket === 1 && (
+          {(in_bucket === 1 && !isDeleting) && (
             <Button 
               variant="ghost"
               size="icon"

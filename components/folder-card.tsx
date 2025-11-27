@@ -194,7 +194,7 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
       }
       <div
         className="group rounded-xl border border-border bg-card p-4 shadow-sm hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer relative"
-        onClick={handleClick}
+        onClick={()=> {if(!isDeleting)handleClick}}
       >
         <Button 
           variant="ghost"
