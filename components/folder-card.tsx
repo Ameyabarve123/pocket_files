@@ -1,8 +1,11 @@
 "use client";
 import { FolderOpen, FileText, File, Image, FileCode, FileAudio, X, Download, Share2, Copy, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useStorage } from "@/components/storage-context";
+import Modal from "./modal";
+import { useAlert } from "@/components/use-alert";
+
 
 interface FolderCardProps {
   i: string; // title
@@ -20,14 +23,18 @@ interface FolderCardProps {
 const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, bucketPath, onDelete, onClick }: FolderCardProps) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showFileDialog, setShowFileDialog] = useState(false);
+  const [openModal, setOpenModal] = useState(false);
+  const [confirmFolderAction, setConfirmFolderAction] = useState(false);
   const { refreshStorage } = useStorage();
+  const { showAlert } = useAlert();
 
-  const handleDelete = async (e: React.MouseEvent) => {
-    e.stopPropagation();
+  useEffect(() => {
+    performDelete();
+    setConfirmFolderAction(false); 
+  }, [confirmFolderAction])
 
-    const confirmed = confirm(`Are you sure you want to delete "${i}"?`);
-    if (!confirmed) return;
-
+  const performDelete = async () => {
+    if (!confirmFolderAction) return;
     setIsDeleting(true);
     try {
       const response = await fetch(`/api/delete/long-term-storage/${id}`, {
@@ -37,7 +44,7 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
       const result = await response.json();
 
       if (result.error) {
-        alert("Error deleting: " + result.error);
+        showAlert('Error', `Error deleting: ${result.error}`);
       } else {
         if (onDelete) {
           onDelete();
@@ -45,9 +52,10 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
         }
       }
     } catch (error) {
-      alert("An error occurred while deleting");
+      showAlert('Error', "An error occurred while deleting");
     } finally {
       setIsDeleting(false);
+      setOpenModal(false);
     }
   };
 
@@ -77,7 +85,7 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
       document.body.removeChild(a);
     } catch (err) {
       console.error('Download error:', err);
-      alert('Failed to download file');
+      showAlert("Error", 'Failed to download file');
     }
   };
 
@@ -89,7 +97,7 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
       });
 
       if (!res.ok) {
-        alert("Error fetching file content: " + res.statusText);
+        showAlert("Error", `Error fetching file content: ${res.statusText}`);
         return;
       }
 
@@ -99,11 +107,11 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
       const text = await fileRes.text(); 
 
       await navigator.clipboard.writeText(text);
-      alert("File content copied to clipboard!");
+      showAlert("Error", "File content copied to clipboard!");
 
       return text;
     } catch (error) {
-      alert("Error copying content");
+      showAlert("Error", "Error copying content");
     }
   };
 
@@ -115,44 +123,18 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
       });
 
       if (!res.ok) {
-        alert("Error fetching file content: " + res.statusText);
+        showAlert("Error", `Error fetching file content: ${res.statusText}`);
         return;
       }
 
       const { url } = await res.json();
 
       await navigator.clipboard.writeText(url);
-      alert("File content copied to clipboard!");
+      showAlert("Error", "File content copied to clipboard!");
 
       return url;
     } catch (error) {
-      alert("Error copying content");
-    }
-  };
-
-  const handleDeleteFromDialog = async () => {
-    const confirmed = confirm(`Are you sure you want to delete "${i}"?`);
-    if (!confirmed) return;
-
-    try {
-      const response = await fetch(`/api/delete/long-term-storage/${id}`, {
-        method: "DELETE"
-      });
-
-      const result = await response.json();
-
-      if (result.error) {
-        alert("Error deleting: " + result.error);
-      } else {
-        alert("File deleted successfully!");
-        setShowFileDialog(false);
-        if (onDelete) {
-          onDelete();
-          await refreshStorage();
-        }
-      }
-    } catch (error) {
-      alert("An error occurred while deleting");
+      showAlert("Error", "Error copying content");
     }
   };
 
@@ -201,6 +183,15 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
 
   return (
     <>
+      {openModal && 
+        <Modal
+          onClose={() => setOpenModal(false)}
+          giveVal={setConfirmFolderAction}
+          title={"Confirm delete"}
+        >
+          <p>This action is permanent</p>
+        </Modal>
+      }
       <div
         className="group rounded-xl border border-border bg-card p-4 shadow-sm hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer relative"
         onClick={handleClick}
@@ -208,7 +199,10 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
         <Button 
           variant="ghost"
           size="icon"
-          onClick={handleDelete}
+          onClick={(e) => {
+            e.stopPropagation(); 
+            setOpenModal(true);
+          }}
           disabled={isDeleting}
           className="absolute top-2 right-2 p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-destructive/10 transition-opacity text-destructive hover:text-destructive"
         >
@@ -294,17 +288,22 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
                   </Button>
                 )}
 
-                <Button 
-                  onClick={handleShareFile}
-                  variant="outline"
-                  className="w-full justify-start"
-                >
-                  <Share2 className="w-4 h-4 mr-2" />
-                  Share File (Copy Link)
-                </Button>
+                {!mimeType?.startsWith('text/') && (
+                  <Button 
+                    onClick={handleShareFile}
+                    variant="outline"
+                    className="w-full justify-start"
+                  >
+                    <Share2 className="w-4 h-4 mr-2" />
+                    Share File (Copy Link)
+                  </Button>
+                )}
 
                 <Button 
-                  onClick={handleDeleteFromDialog}
+                  onClick={(e) => {
+                    e.stopPropagation(); 
+                    setOpenModal(true);
+                  }}
                   variant="destructive"
                   className="w-full justify-start"
                 >

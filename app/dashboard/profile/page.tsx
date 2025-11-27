@@ -2,10 +2,11 @@
 
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { User, Lock, Upload } from "lucide-react";
 import { useStorage } from "@/components/storage-context";
+import { useAlert } from "@/components/use-alert";
 
 export default function Profile() {
   const router = useRouter();
@@ -22,6 +23,7 @@ export default function Profile() {
   const [email, setEmail] = useState("");
 
   const { refreshStorage } = useStorage();
+  const { showAlert } = useAlert();
 
   useEffect(() => {
     loadProfile();
@@ -58,7 +60,7 @@ export default function Profile() {
 
   const handleUpdateUsername = async () => {
     if (!username.trim()) {
-      alert("Username cannot be empty");
+      showAlert("Error", "Username cannot be empty");
       return;
     }
 
@@ -75,14 +77,14 @@ export default function Profile() {
         .eq("id", user.id);
 
       if (error) {
-        alert("Error updating username: " + error.message);
+        showAlert("Error", `Error updating username: ${error.message}`);
       } else {
-        alert("Username updated successfully!");
+        showAlert("Success", "Username updated successfully!");
         await refreshStorage();
       }
     } catch (error) {
       console.error("Error:", error);
-      alert("Failed to update username");
+      showAlert("Error", "Failed to update username");
     } finally {
       setLoading(false);
     }
@@ -90,17 +92,17 @@ export default function Profile() {
 
   const handleUpdatePassword = async () => {
     if (!newPassword || !confirmPassword) {
-      alert("Please fill in all password fields");
+      showAlert("Error", "Please fill in all password fields");
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      alert("New passwords don't match");
+      showAlert("Error", "New passwords don't match");
       return;
     }
 
     if (newPassword.length < 6) {
-      alert("Password must be at least 6 characters");
+      showAlert("Error", "Password must be at least 6 characters");
       return;
     }
 
@@ -113,17 +115,16 @@ export default function Profile() {
       });
 
       if (error) {
-        alert("Error updating password: " + error.message);
+        showAlert("Error", `Error updating password: ${error.message}`);
       } else {
-        alert("Password updated successfully!");
+        showAlert("Success", "Password updated successfully!");
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
         await refreshStorage();
       }
     } catch (error) {
-      console.error("Error:", error);
-      alert("Failed to update password");
+      showAlert("Error", "Failed to update password");
     } finally {
       setLoading(false);
     }
@@ -131,7 +132,7 @@ export default function Profile() {
 
   const handleUpdateProfilePicture = async () => {
     if (!profilePicture) {
-      alert("Please select an image");
+      showAlert("Error", "Please select an image");
       return;
     }
 
@@ -143,8 +144,7 @@ export default function Profile() {
       if (!user) return;
       
       // ALWAYS use the same filename regardless of uploaded file type
-      const fileName = `${user.id}/profile`;  // No extension!
-      // OR use: const fileName = `${user.id}/profile.jpg`; // Fixed extension
+      const fileName = `${user.id}/profile`;  
 
       // Upload with upsert - will replace if exists
       const { error: uploadError } = await supabase.storage
@@ -155,8 +155,7 @@ export default function Profile() {
         });
 
       if (uploadError) {
-        console.error("Upload error details:", uploadError);
-        alert("Error uploading image: " + uploadError.message);
+        showAlert("Error", `Error uploading image: ${uploadError.message}`);
         return;
       }
 
@@ -174,16 +173,16 @@ export default function Profile() {
         .eq("id", user.id);
 
       if (updateError) {
-        alert("Error updating profile: " + updateError.message);
+        showAlert("Error", `Error updating profile: ${updateError.message}`);
       } else {
         setProfilePictureUrl(urlWithCacheBust);
-        alert("Profile picture updated successfully!");
+        showAlert("Success", "Profile picture updated successfully!");
         setProfilePicture(null);
         await refreshStorage();
       }
     } catch (error) {
       console.error("Error:", error);
-      alert("Failed to update profile picture");
+      showAlert("Error", "Failed to update profile picture");
     } finally {
       setLoading(false);
     }
