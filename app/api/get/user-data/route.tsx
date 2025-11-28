@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
     // Get authenticated user
     const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user) {
+    if (!user?.id) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
@@ -21,13 +21,28 @@ export async function GET(req: NextRequest) {
 
     if (profileError) {
       console.error("Profile fetch error:", profileError);
+      return NextResponse.json({ 
+        error: "Failed to fetch profile" 
+      }, { status: 500 });
     }
+
+    // Profile not found
+    if (!profile) {
+      return NextResponse.json({ 
+        error: "Profile not found" 
+      }, { status: 404 });
+    }
+
+    // Optional: Remove sensitive fields before returning
+    // const { password_hash, ...safeProfile } = profile;
 
     return NextResponse.json({ 
       user_data: profile 
     }, { status: 200 });
   } catch (error) {
     console.error("Get user error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ 
+      error: "Internal Server Error" 
+    }, { status: 500 });
   }
 }
