@@ -53,7 +53,6 @@ export default function ProtectedPage() {
       });
       await refreshStorage()
     } else {
-      console.log(result.error);
       const errorMsg:string = `Upload failed: ${result.error.message}`;
       showAlert("Error", errorMsg);
     }
@@ -81,7 +80,6 @@ export default function ProtectedPage() {
       });
       await refreshStorage()
     } else {
-      console.log(result.error.message);
       const errorMsg:string = `Upload failed: ${result.error.message}`;
       showAlert("Error", errorMsg);
     }
@@ -126,7 +124,7 @@ export default function ProtectedPage() {
   return (
     <div className="flex flex-col gap-12 w-full">
       {/* Page Header */}
-      <div className="space-y-2">
+      <div className="w:full space-y-2">
         <h1 className="text-4xl font-bold tracking-tight">Home</h1>
         <p className="text-lg text-muted-foreground">
           Quickly share folders, notes, or files with anyone

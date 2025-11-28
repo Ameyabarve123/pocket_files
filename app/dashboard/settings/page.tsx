@@ -35,7 +35,6 @@ export default function LongTermStorage() {
   const handleDeleteProfile = async () => {
     if(!confirmAction) return;
     if (!confirmAction2) return;
-    console.log("entered")
     
     setIsDeleting(true);
     try {
