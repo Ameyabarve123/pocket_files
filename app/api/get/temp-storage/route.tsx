@@ -1,49 +1,89 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+const MAX_SIGNED_URL_DURATION = 60 * 24; // 24 hours in minutes
+const DEFAULT_DURATION = 5; // 5 minutes
+
 export async function GET(req: NextRequest) {
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
 
-  // Get authenticated user
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    // Get authenticated user
+    const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user?.id) {
-    return NextResponse.json({ error: "User not authenticated" }, { status: 401 });
-  }
+    if (!user?.id) {
+      return NextResponse.json({ error: "User not authenticated" }, { status: 401 });
+    }
 
-  const { data: dbRows, error: dbError } = await supabase
-    .from("temp_storage")
-    .select("*")
-    .eq("uid", user.id)
-    .order("created_at", { ascending: false });
+    const { data: dbRows, error: dbError } = await supabase
+      .from("temp_storage")
+      .select("*")
+      .eq("uid", user.id)
+      .order("created_at", { ascending: false });
 
-  if (dbError) {
-    return NextResponse.json({ error: dbError.message }, { status: 500 });
-  }
+    if (dbError) {
+      console.error("Database error:", dbError);
+      return NextResponse.json({ error: "Failed to fetch storage items" }, { status: 500 });
+    }
 
-  // For each DB row, generate a signed URL for the file
-  const results = await Promise.all(
-    dbRows.map(async (row) => {
-      if (row.in_bucket === 1) {
-        const durationMinutes = Number(row.duration) || 5;
-        const { data: signed, error: signedError } = await supabase.storage
-          .from("temporary_storage")
-          .createSignedUrl(row.data, 60 * durationMinutes); // URL valid for duration in minutes
+    // For each DB row, generate a signed URL for the file
+    const results = await Promise.all(
+      dbRows.map(async (row) => {
+        if (row.in_bucket === 1) {
+          try {
+            // Validate the bucket path belongs to this user
+            if (!row.data.startsWith(`${user.id}/`)) {
+              console.error(`Security violation: User ${user.id} attempted to access path ${row.data}`);
+              return {
+                ...row,
+                data: null,
+                error: "Access denied"
+              };
+            }
 
-        if (signedError) {
-          throw new Error(`Failed to generate signed URL: ${signedError.message}`);
+            // Validate and sanitize duration
+            let durationMinutes = Number(row.duration);
+            if (isNaN(durationMinutes) || durationMinutes <= 0) {
+              durationMinutes = DEFAULT_DURATION;
+            }
+            if (durationMinutes > MAX_SIGNED_URL_DURATION) {
+              durationMinutes = MAX_SIGNED_URL_DURATION;
+            }
+
+            const { data: signed, error: signedError } = await supabase.storage
+              .from("temporary_storage")
+              .createSignedUrl(row.data, 60 * durationMinutes);
+
+            if (signedError) {
+              console.error(`Failed to generate signed URL for row ${row.id}:`, signedError);
+              return {
+                ...row,
+                data: null,
+                error: "Failed to generate URL"
+              };
+            }
+
+            return {
+              ...row,
+              data: signed.signedUrl,
+            };
+          } catch (error) {
+            console.error(`Error processing row ${row.id}:`, error);
+            return {
+              ...row,
+              data: null,
+              error: "Processing error"
+            };
+          }
         }
 
-        return {
-          ...row,
-          data: signed.signedUrl,
-        };
-      }
-
-      return row;
-    })
-  );
-  return NextResponse.json(results);
+        return row;
+      })
+    );
+    
+    return NextResponse.json(results);
+  } catch (error) {
+    console.error("Get temp storage error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 }

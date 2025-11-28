@@ -1,10 +1,11 @@
 "use client";
-import { FolderOpen, FileText, File, Image, FileCode, FileAudio, X, Download, Share2, Copy, Trash2 } from "lucide-react"
+import { FolderOpen, FileText, File, Image as ImageImage, FileCode, FileAudio, X, Download, Share2, Copy, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { useStorage } from "@/components/storage-context";
 import Modal from "./modal";
 import { useAlert } from "@/components/use-alert";
+import Image from 'next/image'
 
 
 interface FolderCardProps {
@@ -25,10 +26,13 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
   const [showFileDialog, setShowFileDialog] = useState(false);
   const [openModal, setOpenModal] = useState(false);
   const [confirmFolderAction, setConfirmFolderAction] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [copyingText, setCopyingText] = useState(false);
   const { refreshStorage } = useStorage();
   const { showAlert } = useAlert();
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+
 
   useEffect(() => {
     performDelete();
@@ -123,7 +127,33 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
     }
   };
 
+  useEffect(() => {
+    const loadImage = async () => {
+      try {
+        const encodedBucketPath = encodeURIComponent(bucketPath!);
+        const res = await fetch(`/api/get/long-term-storage/from-bucket/${encodedBucketPath}`, {
+          method: "GET"
+        });
+
+        if (!res.ok) {
+          showAlert("Error", `Error fetching file content: ${res.statusText}`);
+          return;
+        }
+
+        const { url } = await res.json();
+        setImageUrl(url);
+      } catch (error) {
+        showAlert("Error", "Error getting image");
+      }
+    };
+
+    if (bucketPath) {
+      loadImage();
+    }
+  }, [bucketPath]);
+
   const handleShareFile = async () => {
+    setIsSharing(true);
     try {
       const encodedBucketPath = encodeURIComponent(bucketPath!);
       const res = await fetch(`/api/get/long-term-storage/from-bucket/${encodedBucketPath}`, {
@@ -138,12 +168,14 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
       const { url } = await res.json();
 
       await navigator.clipboard.writeText(url);
-      showAlert("Error", "File content copied to clipboard!");
-
+      showAlert("Success", "File content copied to clipboard!");
+      setIsSharing(false);
       return url;
     } catch (error) {
+      setIsSharing(false);
       showAlert("Error", "Error copying content");
     }
+    setIsSharing(false);
   };
 
   const getIcon = () => {
@@ -153,7 +185,7 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
 
     if (mimeType) {
       if (mimeType.startsWith('image/')) {
-        return <Image className="w-6 h-6 text-blue-500" />;
+        return <ImageImage className="w-6 h-6 text-blue-500" />;
       }
       if (mimeType.startsWith('audio/')) {
         return <FileAudio className="w-6 h-6 text-pink-500" />;
@@ -256,6 +288,9 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
                 </div>
               )}
 
+              {imageUrl && <Image src={imageUrl} className="cursor-pointer" alt="Image of given data" width={500} height={500} onClick={
+                () => {window.open(imageUrl)}}/>}
+
               {/* File Info */}
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
@@ -317,8 +352,8 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
                   </Button>
 
                 }
-
-                {!mimeType?.startsWith('text/') && (
+          
+                {!mimeType?.startsWith('text/') && !isSharing &&(
                   <Button 
                     onClick={handleShareFile}
                     variant="outline"
@@ -326,6 +361,17 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
                   >
                     <Share2 className="w-4 h-4 mr-2" />
                     Share File (Copy Link)
+                  </Button>
+                )}
+
+                {!mimeType?.startsWith('text/') && isSharing &&(
+                  <Button 
+                    disabled={true}
+                    variant="outline"
+                    className="w-full justify-start"
+                  >
+                    <Share2 className="w-4 h-4 mr-2" />
+                    Copying shareable link...
                   </Button>
                 )}
 

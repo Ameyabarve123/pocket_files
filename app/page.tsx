@@ -34,7 +34,7 @@ export default async function Home() {
                 <div className="space-y-8">
                   <div className="space-y-4">
                     <h1 className="text-5xl md:text-7xl font-bold tracking-tight">
-                      Easy Link
+                      PocketFiles
                     </h1>
                     <p className="text-xl md:text-2xl text-muted-foreground">
                       One platform to seamlessly organize your digital life
