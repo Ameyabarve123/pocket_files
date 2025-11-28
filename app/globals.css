@@ -69,26 +69,35 @@
 
 @keyframes slideInOut {
   0% {
-    right: -500px;
-    opacity: 100;
+    transform: translateX(calc(100% + 20px));
+    opacity: 0;
   }
   10% {
-    right: 20px;
-    opacity: 100;
+    transform: translateX(0);
+    opacity: 1;
   }
   90% {
-    right: 20px;
-    opacity: 100;
+    transform: translateX(0);
+    opacity: 1;
   }
   100% {
-    right: -500px;
-    opacity: 100;
+    transform: translateX(calc(100% + 20px));
+    opacity: 0;
   }
 }
 
 .alert-box {
   position: fixed;
-  top: 50px;
-  right: -500px;
+  top: 20px;
+  right: 20px;
   animation: slideInOut 4s ease-in-out forwards;
+}
+
+@media (max-width: 640px) {
+  .alert-box {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: calc(100vw - 20px);
+  }
 }
