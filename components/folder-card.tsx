@@ -25,6 +25,8 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
   const [showFileDialog, setShowFileDialog] = useState(false);
   const [openModal, setOpenModal] = useState(false);
   const [confirmFolderAction, setConfirmFolderAction] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [copyingText, setCopyingText] = useState(false);
   const { refreshStorage } = useStorage();
   const { showAlert } = useAlert();
 
@@ -60,6 +62,7 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
   };
 
   const handleClick = () => {
+    console.log("entered")
     if (type === 'folder' && onClick) {
       onClick();
     } else if (type === 'file') {
@@ -68,6 +71,7 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
   };
 
   const handleDownloadFile = async () => {
+    setIsDownloading(true);
     try {
       const data = await fetch(`/api/get/long-term-storage/from-bucket/${encodeURIComponent(bucketPath!)}`, {
         method: "GET"
@@ -83,13 +87,16 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      setIsDownloading(false);
     } catch (err) {
+      setIsDownloading(false);
       console.error('Download error:', err);
       showAlert("Error", 'Failed to download file');
     }
   };
 
   const handleCopyContent = async () => {
+    setCopyingText(true);
     try {
       const encodedBucketPath = encodeURIComponent(bucketPath!);
       const res = await fetch(`/api/get/long-term-storage/from-bucket/${encodedBucketPath}`, {
@@ -100,18 +107,19 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
         showAlert("Error", `Error fetching file content: ${res.statusText}`);
         return;
       }
-
+    
       const { url } = await res.json();
 
       const fileRes = await fetch(url);
       const text = await fileRes.text(); 
 
       await navigator.clipboard.writeText(text);
-      showAlert("Error", "File content copied to clipboard!");
-
+      showAlert("Success", "File content copied to clipboard!");
+      setCopyingText(false);
       return text;
     } catch (error) {
       showAlert("Error", "Error copying content");
+      setCopyingText(false);
     }
   };
 
@@ -194,7 +202,7 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
       }
       <div
         className="group rounded-xl border border-border bg-card p-4 shadow-sm hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer relative"
-        onClick={()=> {if(!isDeleting)handleClick}}
+        onClick={()=> {if(!isDeleting)handleClick()}}
       >
         <Button 
           variant="ghost"
@@ -267,7 +275,7 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
               {/* Action Buttons */}
               
               <div className="flex flex-col gap-2 pt-4">
-                {!mimeType?.startsWith('text/') && (
+                {(!mimeType?.startsWith('text/') && !isDownloading) && (
                   <Button 
                     onClick={handleDownloadFile}
                     className="w-full justify-start"
@@ -277,7 +285,17 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
                   </Button>
                 )}
 
-                {mimeType?.startsWith('text/') && (
+                {(!mimeType?.startsWith('text/') && isDownloading) && (
+                  <Button 
+                    disabled={true}
+                    className="w-full justify-start"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Downloading...
+                  </Button>
+                )}
+
+                { (mimeType?.startsWith('text/') && !copyingText) &&
                   <Button 
                     onClick={handleCopyContent}
                     variant="outline"
@@ -285,8 +303,20 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
                   >
                     <Copy className="w-4 h-4 mr-2" />
                     Copy Content
+                  </Button> 
+                }
+                { mimeType?.startsWith('text/') && copyingText &&
+                  <Button 
+                    onClick={handleCopyContent}
+                    variant="outline"
+                    className="w-full justify-start"
+                    disabled={true}
+                  >
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copying Content
                   </Button>
-                )}
+
+                }
 
                 {!mimeType?.startsWith('text/') && (
                   <Button 
@@ -299,17 +329,29 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
                   </Button>
                 )}
 
-                <Button 
-                  onClick={(e) => {
-                    e.stopPropagation(); 
-                    setOpenModal(true);
-                  }}
-                  variant="destructive"
-                  className="w-full justify-start"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete File
-                </Button>
+                {!isDeleting ?
+                  <Button 
+                    onClick={(e) => {
+                      e.stopPropagation(); 
+                      setOpenModal(true);
+                    }}
+                    variant="destructive"
+                    className="w-full justify-start"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete File
+                  </Button>
+                  :
+                  <Button 
+                    disabled={true}
+                    variant="destructive"
+                    className="w-full justify-start"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Deleting...
+                  </Button>
+                }
+
               </div>
             </div>
           </div>
