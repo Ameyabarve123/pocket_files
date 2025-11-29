@@ -66,7 +66,6 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
   };
 
   const handleClick = () => {
-    console.log("entered")
     if (type === 'folder' && onClick) {
       onClick();
     } else if (type === 'file') {
@@ -288,8 +287,10 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
                 </div>
               )}
 
-              {imageUrl && <Image src={imageUrl} className="cursor-pointer" alt="Image of given data" width={500} height={500} onClick={
-                () => {window.open(imageUrl)}}/>}
+              {(!mimeType?.startsWith('text/') && imageUrl) && <Image src={imageUrl} className="cursor-pointer" alt="Image of given data" width={500} height={500} onClick={
+                () => {window.open(imageUrl)
+                  console.log()
+                }}/>}
 
               {/* File Info */}
               <div className="grid grid-cols-2 gap-4 text-sm">

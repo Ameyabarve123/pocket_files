@@ -12,14 +12,16 @@ export default function pricing() {
       "10 GB of storage",
       "1 GB upload",
       "No ads",
-      "Basic AI search (10 searches a day)"
+      "Basic AI search",
+
     ],
     "Premium Plan": [
       "Everything in Pro Plan",
       "50 GB of storage",
       "Max upload size of 5GB",
       "Upload videos",
-      "Advanced AI search  (unlimited searches a day)"
+      "Advanced AI search",
+      "Sign up for email reminders to come back to view your uploads"
     ]
   }
   return (
@@ -40,7 +42,7 @@ export default function pricing() {
         />
         <PricingCard 
           title="Premium Plan"
-          text="$10.99/month"
+          text="$14.99/month"
           bullets={bulletJson["Premium Plan"]}
           priceType={2}  
         />
