@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
 export async function GET(
   req: NextRequest,
@@ -9,10 +10,9 @@ export async function GET(
   const { bucketPath } = await params;
 
   // Get authenticated user
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user?.id) {
-    return NextResponse.json({ error: "User not authenticated" }, { status: 401 });
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user?.id) {
+    return redirect("/login");
   }
 
   // Decode and validate the bucket path

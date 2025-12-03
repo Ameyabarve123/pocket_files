@@ -1,11 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ parentId: string }>}
 ) {
   try {
+    // Create server Supabase client
+    const supabase = await createClient();
+
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user?.id) {
+      return redirect("/login");
+    }
+
     // Read form data
     const formData = await req.formData();
     const file = formData.get("file") as File;
@@ -21,16 +32,6 @@ export async function POST(
       return NextResponse.json({ error: "No name provided" }, { status: 400 });
     }
 
-    // Create server Supabase client
-    const supabase = await createClient();
-
-    // Get authenticated user
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user?.id) {
-      return NextResponse.json({ error: "User not authenticated" }, { status: 401 });
-    }
-
     // Get current storage used
     const { data: profile } = await supabase
       .from("profiles")
@@ -39,7 +40,7 @@ export async function POST(
       .single();
 
     const currentStorage = profile?.storage_used || 0;
-    const maxStorage = profile?.max_storage || 5368709120; // Default to 5 GB if not set
+    const maxStorage = profile?.max_storage; 
     const newStorage = currentStorage + file.size;
 
     if (newStorage > maxStorage) {
