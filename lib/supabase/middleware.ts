@@ -1,7 +1,34 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import arcjet, { shield, detectBot, tokenBucket } from "@arcjet/next";
+
+const aj = arcjet({
+  key: process.env.ARCJET_KEY!,
+  rules: [
+    shield({ mode: "LIVE" }),
+    detectBot({ 
+      mode: "LIVE", 
+      allow: ["CATEGORY:SEARCH_ENGINE"] 
+    }),
+    tokenBucket({
+      mode: "LIVE",
+      refillRate: 5,
+      interval: 10,
+      capacity: 10,
+    }),
+  ],
+});
 
 export async function updateSession(request: NextRequest) {
+  const decision = await aj.protect(request, {requested: 2});
+  
+  if (decision.isDenied()) {
+    return NextResponse.json(
+      { error: "Forbidden", reason: decision.reason },
+      { status: 403 }
+    );
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   });
