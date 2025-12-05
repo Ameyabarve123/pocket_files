@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
 export async function DELETE(
   req: NextRequest,
@@ -11,7 +12,7 @@ export async function DELETE(
     // Auth check
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user?.id) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+      return redirect("/login");
     }
 
     const { id } = await params;
