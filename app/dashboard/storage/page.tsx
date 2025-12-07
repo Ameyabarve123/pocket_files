@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useState, useEffect } from "react";
 import { useStorage } from "@/components/storage-context";
 import { useAlert } from "@/components/use-alert";
+import LongTermSearchBar from "@/components/long-term-search-bar";
 
 
 export default function LongTermStorage() {
@@ -228,20 +229,12 @@ export default function LongTermStorage() {
           </p>
         </div>
         
-        {/* Search Bar */}
-        <div className="flex items-center gap-2 border border-border rounded-lg px-4 py-3 bg-card shadow-sm max-w-2xl">
-          <Search className="w-5 h-5 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search your files..."
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground"
-          />
-        </div>
+        {/* Search Bar */} 
+        <LongTermSearchBar
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          setCurrentPage={setCurrentPage}
+        />
       </div>
 
       {/* Folders Section */}
