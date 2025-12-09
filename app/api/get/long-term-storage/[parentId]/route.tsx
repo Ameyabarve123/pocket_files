@@ -25,7 +25,7 @@ export async function GET(
     // Get all items in this folder
     const { data, error } = await supabase
       .from("storage_nodes")
-      .select("*")
+      .select("id, name, type, parent_id, bucket, bucket_path, mime_type, file_size, created_at, description")
       .eq("uid", user.id)
       .is("parent_id", actualParentId)
       .order("created_at", { ascending: false });

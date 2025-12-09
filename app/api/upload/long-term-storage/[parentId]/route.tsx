@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { GoogleGenAI } from "@google/genai";
 
 export async function POST(
   req: NextRequest,
@@ -52,53 +53,75 @@ export async function POST(
 
     // Handle NULL parent_id
     let { parentId } = await params;
-    let parent_Id: string | null = parentId;
+    let parent_Id: string | null = parentId === 'NULL' ? null : parentId;
     
-    if (parentId === 'NULL') {
-      parent_Id = null;
-    }
-
-    // 1. Upload to bucket
-    const { error: uploadError } = await supabase.storage
-      .from(bucket)
-      .upload(bucketPath, file);
-
-    if (uploadError) {
-      return NextResponse.json({ error: uploadError.message }, { status: 500 });
-    }
-
-    // 2. Insert metadata
-    const { data, error } = await supabase
-      .from("storage_nodes")
-      .insert({
+    // Run all 3 operations in parallel
+    const [uploadResult, insertResult, updateResult] = await Promise.all([
+      // Upload to bucket
+      supabase.storage.from(bucket).upload(bucketPath, file),
+      
+      // Insert metadata
+      supabase.from("storage_nodes").insert({
         uid: user.id, 
-        name: name, 
-        description: description, 
+        name, 
+        description, 
         type: "file",
         parent_id: parent_Id, 
         bucket,
         bucket_path: bucketPath,
         mime_type: file.type,
         file_size: file.size,
-      })
-      .select()
-      .single();
+      }).select().single(),
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      // Update storage used
+      supabase
+        .from("profiles")
+        .update({ storage_used: newStorage })
+        .eq("id", user.id)
+    ]);
+
+    if (uploadResult.error) {
+      return NextResponse.json({ error: uploadResult.error.message }, { status: 500 });
     }
 
-    // Update storage in profile
-    await supabase
-    .from("profiles")
-    .update({ 
-      storage_used: newStorage
-    })
-    .eq("id", user.id);
+    if (insertResult.error) {
+      return NextResponse.json({ error: insertResult.error.message }, { status: 500 });
+    }
 
-    return NextResponse.json({ data }, { status: 200 });
+    if (updateResult.error) {
+      console.error("Storage update failed:", updateResult.error);
+      return NextResponse.json({ error: updateResult.error.message }, { status: 500 });
+      // Don't fail the request, but log it
+    }
+
+    // Generate embeddings in background
+    generateEmbeddingsAsync(insertResult.data.id, description);
+
+    return NextResponse.json({ data: insertResult.data }, { status: 200 });
   } catch (error) {
     console.error("Upload error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+async function generateEmbeddingsAsync(nodeId: string, description: string) {
+  try{
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    const result = await ai.models.embedContent({
+      model: "gemini-embedding-001",
+      contents: description,
+      config: { taskType: 'SEMANTIC_SIMILARITY', outputDimensionality: 768 },
+    });
+
+    const embeddingValues = result.embeddings?.[0].values;
+
+    // Update the record with the embedding
+    const supabase = await createClient();
+    await supabase
+      .from("storage_nodes")
+      .update({ embedded_description: embeddingValues })
+      .eq("id", nodeId);
+  } catch (error) {
+    console.error("Embedding generation failed:", error);
   }
 }
