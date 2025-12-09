@@ -107,7 +107,7 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
       });
 
       if (!res.ok) {
-        showAlert("Error", `Error fetching file content: ${res.statusText}`);
+        showAlert("Error", `Birch`);
         return;
       }
     

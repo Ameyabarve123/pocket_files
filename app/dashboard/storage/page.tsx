@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useState, useEffect } from "react";
 import { useStorage } from "@/components/storage-context";
 import { useAlert } from "@/components/use-alert";
+import LongTermSearchBar from "@/components/long-term-search-bar";
 
 
 export default function LongTermStorage() {
@@ -48,7 +49,7 @@ export default function LongTermStorage() {
       // Build query based on whether we're at root or in a folder
       let query = supabase
         .from("storage_nodes")
-        .select("*")
+        .select("id, name, type, parent_id, bucket, bucket_path, mime_type, file_size, created_at, description")
         .eq("uid", user.id);
 
       // Use .is() for null, .eq() for actual IDs
@@ -90,7 +91,7 @@ export default function LongTermStorage() {
         uid,
         parent_id: parentId
       })
-      .select()
+      .select("id, name, type, parent_id, bucket, bucket_path, mime_type, file_size, created_at, description")
       .single();
 
     return { data, error };
@@ -228,20 +229,12 @@ export default function LongTermStorage() {
           </p>
         </div>
         
-        {/* Search Bar */}
-        <div className="flex items-center gap-2 border border-border rounded-lg px-4 py-3 bg-card shadow-sm max-w-2xl">
-          <Search className="w-5 h-5 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search your files..."
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground"
-          />
-        </div>
+        {/* Search Bar */} 
+        <LongTermSearchBar
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          setCurrentPage={setCurrentPage}
+        />
       </div>
 
       {/* Folders Section */}
@@ -453,6 +446,17 @@ export default function LongTermStorage() {
                     </button>
                   </div>
 
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Title</label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Enter file title"
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+
                   {uploadType === "file" ? (
                     <div className="space-y-2">
                       <label className="text-sm font-medium">File</label>
@@ -476,17 +480,7 @@ export default function LongTermStorage() {
                   )}
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Title</label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="Enter file title"
-                      className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Description (optional)</label>
+                    <label className="text-sm font-medium">Description</label>
                     <textarea
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -509,6 +503,7 @@ export default function LongTermStorage() {
                       disabled={
                         isUploading || 
                         !formData.name || 
+                        !formData.description || 
                         (uploadType === "file" && !formData.file) ||
                         (uploadType === "text" && !formData.textContent)
                       }
