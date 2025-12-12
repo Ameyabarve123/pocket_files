@@ -1,6 +1,7 @@
 import { Search } from "lucide-react";
 import { useState, FormEvent } from "react";
 import { Button } from "./ui/button";
+import { useAlert } from "./use-alert";
 
 interface LongTermSearchBarProps {
   searchQuery: string;
@@ -22,6 +23,8 @@ const LongTermSearchBar = ({
   const [useAISearch, setUseAISearch] = useState(false);
   const [searchValue, setSearchValue] = useState<string>("");
   const [searching, setSearching] = useState<boolean>(false);
+  const {showAlert } = useAlert();
+
 
   const embeddedVectorSearch = async (text: string) => {
     setSearching(true);
@@ -42,7 +45,7 @@ const LongTermSearchBar = ({
         console.error("AI Search failed:", errorMessage);
         setSearching(false);
         // Optionally display a user-friendly error message here (e.g., toast or state update)
-        alert(`Search failed: ${errorMessage}`); 
+        showAlert("Error", `Search failed: ${errorMessage}`);
         return;
     }
 
@@ -54,7 +57,7 @@ const LongTermSearchBar = ({
       console.error("AI Search error in payload:", data.error || "No results key found");
       // Optionally display a user-friendly error message here
       setSearching(false);
-      alert(`Search error: ${data.error || "An unknown search error occurred."}`);
+      showAlert("Error", `Search error: ${data.error || "An unknown search error occurred."}`);
       return;
     }
     
