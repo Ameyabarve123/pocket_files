@@ -12,7 +12,6 @@ export default function pricing() {
       "10 GB of storage",
       "1 GB upload",
       "No ads",
-      "Basic AI search",
 
     ],
     "Premium Plan": [
@@ -20,8 +19,7 @@ export default function pricing() {
       "50 GB of storage",
       "Max upload size of 5GB",
       "Upload videos",
-      "Advanced AI search",
-      "Sign up for email reminders to come back to view your uploads"
+      "AI search",
     ]
   }
   return (

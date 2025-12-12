@@ -30,8 +30,7 @@ export default function LongTermStorage() {
   const [folderPath, setFolderPath] = useState<Array<{ id: string | null; name: string }>>([
     { id: null, name: "Home" }
   ]);
-  const [didAiSearch, setDidAiSearch] = useState(false);
-  const { refreshStorage } = useStorage();
+  const { refreshStorage, subType } = useStorage();
   const { showAlert } = useAlert();
 
 
@@ -219,6 +218,7 @@ export default function LongTermStorage() {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentFolders = filteredFolders.slice(startIndex, endIndex);
+  const showButton = subType === 2 ? true : false
   return (
     <div className="flex flex-col gap-12 w-full">
       {/* Page Header with Search */}
@@ -235,7 +235,7 @@ export default function LongTermStorage() {
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           setCurrentPage={setCurrentPage}
-          displayButton={true}
+          displayButton={showButton}
           loadFolders={loadFolders}
           setFolders={setFolders}
         />
