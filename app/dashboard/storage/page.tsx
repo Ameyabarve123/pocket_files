@@ -30,6 +30,7 @@ export default function LongTermStorage() {
   const [folderPath, setFolderPath] = useState<Array<{ id: string | null; name: string }>>([
     { id: null, name: "Home" }
   ]);
+  const [didAiSearch, setDidAiSearch] = useState(false);
   const { refreshStorage } = useStorage();
   const { showAlert } = useAlert();
 
@@ -235,6 +236,8 @@ export default function LongTermStorage() {
           setSearchQuery={setSearchQuery}
           setCurrentPage={setCurrentPage}
           displayButton={true}
+          loadFolders={loadFolders}
+          setFolders={setFolders}
         />
       </div>
 
