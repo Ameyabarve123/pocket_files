@@ -96,16 +96,19 @@ const LongTermSearchBar = ({
               disabled={searching}
               className="flex-1 w-full bg-transparent outline-none text-sm placeholder:text-muted-foreground"
             />
-          
-            <button
-              type="submit"
-              className={!searching ? 
-                ("text-sm text-purple-300 hover:text-purple-400"):("text-sm text-purple-300")
-              }
-              disabled={searching}
-            >
-              Send
-            </button>
+
+            {!searching ? 
+              (<button
+                  type="submit"
+                  className="text-sm text-purple-300 hover:text-purple-400"
+                  disabled={searching}
+                >
+                Send
+              </button>) : (
+                <h1 className="text-sm text-purple-300">...</h1>
+              )
+            }
+            
           </form>
 
           {displayButton && (
