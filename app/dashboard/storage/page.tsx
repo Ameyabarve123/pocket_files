@@ -234,6 +234,7 @@ export default function LongTermStorage() {
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           setCurrentPage={setCurrentPage}
+          displayButton={true}
         />
       </div>
 
