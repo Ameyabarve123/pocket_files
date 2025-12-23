@@ -218,7 +218,9 @@ export default function LongTermStorage() {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentFolders = filteredFolders.slice(startIndex, endIndex);
-  const showButton = subType === 2 ? true : false
+  //TODO: Uncomment so only upgraded users can view
+  // const showButton = subType === 2 ? true : 
+  const showButton = true
   return (
     <div className="flex flex-col gap-12 w-full">
       {/* Page Header with Search */}
