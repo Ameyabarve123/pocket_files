@@ -1,17 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { apiAj } from "@/lib/arcjet-api";
 
 const MAX_SIGNED_URL_DURATION = 60 * 24; // 24 hours in minutes
 const DEFAULT_DURATION = 5; // 5 minutes
 
 export async function GET(req: NextRequest) {
-  const decision = await apiAj.protect(req, { requested: 2 });
-    
-  if (decision.isDenied()) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
+
   try {
     const supabase = await createClient();
 
