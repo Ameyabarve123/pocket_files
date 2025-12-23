@@ -53,12 +53,6 @@ export async function DELETE(
       }
     }
 
-    // Calculate total bytes
-    const totalBytes = nodesToDelete.reduce(
-      (sum, n) => sum + (n.file_size || 0),
-      0
-    );
-
     // Delete storage files (only for actual files with storage)
     const storageDeletes = nodesToDelete
       .filter(n => n.type === "file" && n.bucket && n.bucket_path)
@@ -78,24 +72,24 @@ export async function DELETE(
 
     if (deleteError) throw deleteError;
 
+    // ❌ DELETE THIS ENTIRE SECTION - trigger handles it!
     // Update storage quota
-    if (totalBytes > 0) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("storage_used")
-        .eq("id", user.id)
-        .single();
-
-      await supabase
-        .from("profiles")
-        .update({ storage_used: Math.max(0, (profile?.storage_used || 0) - totalBytes) })
-        .eq("id", user.id);
-    }
+    // if (totalBytes > 0) {
+    //   const { data: profile } = await supabase
+    //     .from("profiles")
+    //     .select("storage_used")
+    //     .eq("id", user.id)
+    //     .single();
+    //
+    //   await supabase
+    //     .from("profiles")
+    //     .update({ storage_used: Math.max(0, (profile?.storage_used || 0) - totalBytes) })
+    //     .eq("id", user.id);
+    // }
 
     return NextResponse.json({
       success: true,
       message: "Item deleted successfully",
-      bytesFreed: totalBytes,
     });
   } catch (error) {
     console.error("Delete error:", error);

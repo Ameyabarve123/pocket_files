@@ -41,5 +41,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# pricing page
+# pricing page TODO: GET RID OF THIS IF NEEDED
 app/dashboard/pricing

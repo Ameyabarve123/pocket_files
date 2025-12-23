@@ -48,7 +48,6 @@ export async function POST(req: NextRequest) {
 
     // Insert into database
     const expiresAt = new Date(Date.now() + parseInt(duration) * 60000).toISOString(); // duration in minutes
-    // TODO: HANDLE DURATION/EXPIRATION
     const { data: dbInsert, error: dbError } = await supabase
       .from("temp_storage")
       .insert({
