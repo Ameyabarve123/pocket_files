@@ -1,9 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-// uncomment for full Arcjet, not supported with free Vercel plan
+// TODO: uncomment for full Arcjet, not supported with free Vercel plan
 // import arcjet, { shield, detectBot, tokenBucket } from "@arcjet/next";
-import arcjet, { shield } from "@arcjet/next";
-
 
 // TODO: uncomment for full Arcjet, not supported with free Vercel plan
 // const aj = arcjet({
@@ -23,27 +21,10 @@ import arcjet, { shield } from "@arcjet/next";
 //   ],
 // });
 
-// TODO: uncomment for minimum Arcjet
-const aj = arcjet({
-  key: process.env.ARCJET_KEY!,
-  rules: [
-    shield({ mode: "LIVE" }), // Stops SQL injection, XSS globally
-  ],
-});
 
 export async function updateSession(request: NextRequest) {
   // TODO: uncomment for full Arcjet, not supported with Vercel free trial
   // const decision = await aj.protect(request, {requested: 2});
-
-  // TODO: uncomment for minimum Arcjet
-  const decision = await aj.protect(request);
-  
-  if (decision.isDenied()) {
-    return NextResponse.json(
-      { error: "Forbidden", reason: decision.reason },
-      { status: 403 }
-    );
-  }
 
   let supabaseResponse = NextResponse.next({
     request,
