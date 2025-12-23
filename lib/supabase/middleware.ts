@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-// uncomment for full Arcjet, not supported with free Vercel plan
+// TODO: uncomment for full Arcjet, not supported with free Vercel plan
 // import arcjet, { shield, detectBot, tokenBucket } from "@arcjet/next";
 
 // TODO: uncomment for full Arcjet, not supported with free Vercel plan
