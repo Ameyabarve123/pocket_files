@@ -1,28 +1,42 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import arcjet, { shield, detectBot, tokenBucket } from "@arcjet/next";
+// uncomment for full Arcjet, not supported with free Vercel plan
+// import arcjet, { shield, detectBot, tokenBucket } from "@arcjet/next";
+import arcjet, { shield } from "@arcjet/next";
 
-// TODO: uncomment for Arcjet
+
+// TODO: uncomment for full Arcjet, not supported with free Vercel plan
+// const aj = arcjet({
+//   key: process.env.ARCJET_KEY!,
+//   rules: [
+//     shield({ mode: "LIVE" }),
+//     detectBot({ 
+//       mode: "LIVE", 
+//       allow: ["CATEGORY:SEARCH_ENGINE"] 
+//     }),
+//     tokenBucket({
+//       mode: "LIVE",
+//       refillRate: 20,
+//       interval: 10,
+//       capacity: 40,
+//     }),
+//   ],
+// });
+
+// TODO: uncomment for minimum Arcjet
 const aj = arcjet({
   key: process.env.ARCJET_KEY!,
   rules: [
-    shield({ mode: "LIVE" }),
-    detectBot({ 
-      mode: "LIVE", 
-      allow: ["CATEGORY:SEARCH_ENGINE"] 
-    }),
-    tokenBucket({
-      mode: "LIVE",
-      refillRate: 20,
-      interval: 10,
-      capacity: 40,
-    }),
+    shield({ mode: "LIVE" }), // Stops SQL injection, XSS globally
   ],
 });
 
 export async function updateSession(request: NextRequest) {
-  // TODO: uncomment for Arcjet
-  const decision = await aj.protect(request, {requested: 2});
+  // TODO: uncomment for full Arcjet, not supported with Vercel free trial
+  // const decision = await aj.protect(request, {requested: 2});
+
+  // TODO: uncomment for minimum Arcjet
+  const decision = await aj.protect(request);
   
   if (decision.isDenied()) {
     return NextResponse.json(
