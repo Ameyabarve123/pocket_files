@@ -70,7 +70,7 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2">
+      <nav className="p-4 space-y-2">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
@@ -96,7 +96,7 @@ export function Sidebar() {
       </nav>
 
       {/* Bottom Section: Storage, Settings, Profile */}
-      <div className="border-t border-border">
+      <div className="border-t border-border mt-4">
         {/* Storage Usage */}
         <div className={cn("p-4", isCollapsed && "px-2")}>
           {loading ? (
@@ -151,7 +151,7 @@ export function Sidebar() {
           </Link>
         </div>
 
-        <div className="px-4 pb-2">
+        {/* <div className="px-4 pb-2">
           <Link
             key={"pricing"}
             href={"/dashboard/pricing"}
@@ -167,7 +167,7 @@ export function Sidebar() {
             <span className="w-5 h-5 flex-shrink-0"><Gem className="w-5 h-5 flex-shrink-0"></Gem></span>
             {!isCollapsed && <span>Pricing</span>}
           </Link>
-        </div>
+        </div> */}
 
         {/* Profile */}
         <div className="p-4 border-t border-border">
