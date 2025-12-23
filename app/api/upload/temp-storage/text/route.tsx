@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { apiAj } from "@/lib/arcjet-api";
 
 export async function POST(req: NextRequest) {
-
+  const decision = await apiAj.protect(req, { requested: 2 });
+    
+  if (decision.isDenied()) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
+  
   try {
     // Create server Supabase client
     const supabase = await createClient();

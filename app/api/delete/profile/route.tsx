@@ -2,9 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
+import { apiAj } from "@/lib/arcjet-api";
 
 export async function DELETE(req: NextRequest) {
   try {
+    const decision = await apiAj.protect(req, { requested: 2 });
+    
+    if (decision.isDenied()) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    }
+    
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
