@@ -1,7 +1,6 @@
 "use client";
 
-import Script from "next/script";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
@@ -15,9 +14,17 @@ declare global {
 const GoogleLoginButton = () => {
   const supabase = createClient();
   const router = useRouter();
+  const buttonRef = useRef<HTMLDivElement>(null);
+  const [isClient, setIsClient] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Define the callback function globally so Google can call it
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isClient) return;
+
     window.handleSignInWithGoogle = async (response: any) => {
       try {
         const { data, error } = await supabase.auth.signInWithIdToken({
@@ -26,40 +33,76 @@ const GoogleLoginButton = () => {
         });
 
         if (error) throw error;
-
-        console.log("Successfully signed in with Google");
         router.push("/dashboard");
       } catch (error) {
-        console.error("Error signing in with Google:", error);
+        // console.error("Error signing in with Google:", error);
+        setError("Failed to sign in with Google. Please try again.");
       }
     };
 
+    const initializeGoogleButton = () => {
+      if (!window.google || !buttonRef.current) {
+        return false;
+      }
+
+      try {
+        window.google.accounts.id.initialize({
+          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+          callback: window.handleSignInWithGoogle,
+          auto_select: false,
+        });
+
+        window.google.accounts.id.renderButton(buttonRef.current, {
+          type: "standard",
+          shape: "pill",
+          theme: "outline",
+          text: "signin_with",
+          size: "large",
+          logo_alignment: "left",
+        });
+
+        return true;
+      } catch (error) {
+        console.error("Error initializing Google button:", error);
+        setError("Unable to load Google Sign-In. Please refresh the page.");
+        return false;
+      }
+    };
+
+    if (initializeGoogleButton()) {
+      return () => {
+        delete window.handleSignInWithGoogle;
+      };
+    }
+
+    let attempts = 0;
+    const interval = setInterval(() => {
+      if (initializeGoogleButton() || ++attempts >= 50) {
+        clearInterval(interval);
+        if (attempts >= 50) {
+          setError("Unable to load Google Sign-In. Please refresh the page.");
+        }
+      }
+    }, 100);
+
     return () => {
+      clearInterval(interval);
       delete window.handleSignInWithGoogle;
     };
-  }, [supabase, router]);
+  }, [isClient, supabase, router]);
+
+  if (!isClient) {
+    return <div className="mb-5 h-10"></div>;
+  }
 
   return (
     <>
-      <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
-      <div
-        id="g_id_onload"
-        data-client_id={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}
-        data-context="use"
-        data-ux_mode="popup"
-        data-callback="handleSignInWithGoogle"
-        data-auto_prompt="false"
-      ></div>
-
-      <div
-        className="g_id_signin mb-5"
-        data-type="standard"
-        data-shape="pill"
-        data-theme="outline"
-        data-text="signin_with"
-        data-size="large"
-        data-logo_alignment="left"
-      ></div>
+      {error && (
+        <div className="mb-5 text-sm text-red-500">
+          {error}
+        </div>
+      )}
+      <div ref={buttonRef} className="mb-5"></div>
     </>
   );
 };
