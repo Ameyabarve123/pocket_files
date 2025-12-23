@@ -109,8 +109,8 @@ export default function LongTermStorage() {
             <li>Your profile and account data</li>
             <li>All uploaded files and folders</li>
           </ul>
-
-          <h1 className="text-destructive mb-4">IF YOU HAVE A PRO OR PREMIUM ACCOUNT, YOU WILL LOOSE YOUR MEMBERSHIP WITH NO REFUND</h1>
+          {/* TODO: Uncomment this for when pricing plan is implemented */}
+          {/* <h1 className="text-destructive mb-4">IF YOU HAVE A PRO OR PREMIUM ACCOUNT, YOU WILL LOOSE YOUR MEMBERSHIP WITH NO REFUND</h1> */}
           
           <Button 
             variant="destructive"
