@@ -23,7 +23,7 @@ const LongTermSearchBar = ({
   const [useAISearch, setUseAISearch] = useState(false);
   const [searchValue, setSearchValue] = useState<string>("");
   const [searching, setSearching] = useState<boolean>(false);
-  const {showAlert } = useAlert();
+  const { showAlert } = useAlert();
 
 
   const embeddedVectorSearch = async (text: string) => {
