@@ -59,8 +59,9 @@ export async function GET(req: NextRequest) {
       match_threshold: 0.3, 
       match_count: 10, 
     })
-
+    
     if (error) {
+      // console.log(error)
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 

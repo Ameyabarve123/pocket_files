@@ -86,7 +86,7 @@ export function SignUpForm({
       }
 
       // Success - redirect to success page
-      router.push("/auth/sign-up-success");
+      router.push("/dashboard");
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
