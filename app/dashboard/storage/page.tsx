@@ -98,22 +98,57 @@ export default function LongTermStorage() {
   }
 
   async function uploadFile(file: File, name: string, description: string, parentId: string | null = null) {
-    const formDataToSend = new FormData();
-    formDataToSend.append("file", file);
-    formDataToSend.append("name", name);
-    formDataToSend.append("description", description);
+    try {
+      // 1. Get Supabase client and user
+      const supabase = createClient(); 
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('Not authenticated');
+      }
 
-    const response = await fetch(`/api/upload/long-term-storage/${parentId || currentFolderId || 'NULL'}`, {
-      method: "POST",
-      body: formDataToSend
-    });
+      // 2. Generate bucket path
+      const bucket = "user_files";
+      const bucketPath = `${user.id}/${crypto.randomUUID()}-${file.name}`;
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Failed to upload file' }));
-      throw new Error(errorData.message || 'Failed to upload file');
+      // 3. Upload directly to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(bucketPath, file);
+
+      if (uploadError) {
+        throw new Error(uploadError.message);
+      }
+
+      // 4. Call API to create metadata and update storage tracking
+      const response = await fetch(`/api/upload/long-term-storage/${parentId || currentFolderId || 'NULL'}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          description,
+          bucketPath,
+          bucket,
+          mimeType: file.type,
+          fileSize: file.size,
+        })
+      });
+
+      if (!response.ok) {
+        // If metadata creation fails, clean up the uploaded file
+        await supabase.storage.from(bucket).remove([bucketPath]);
+        const errorData = await response.json().catch(() => ({ error: 'Failed to create file metadata' }));
+        throw new Error(errorData.error || errorData.message || 'Failed to create file metadata');
+      }
+
+      await refreshStorage();
+      return await response.json();
+    } catch (error) {
+      console.error('Upload error:', error);
+      throw error;
     }
-    await refreshStorage();
-    return await response.json();
   }
 
   async function uploadText(textContent: string, name: string, description: string, parentId: string | null = null) {

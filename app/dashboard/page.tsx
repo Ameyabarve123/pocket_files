@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useStorage } from '@/components/storage-context'; 
 import { useAlert } from "@/components/use-alert";
+import { redirect } from "next/navigation";
 
 export default function ProtectedPage() {
   const { refreshStorage } = useStorage();
@@ -36,27 +37,69 @@ export default function ProtectedPage() {
     if (!file) return;
     setUploadImage(true);
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("duration", selectedDuration.toString());
+    try {
+      // 1. Get Supabase client and user
+      const supabase = createClient(); 
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        showAlert("Error", "Not authenticated");
+        setUploadImage(false);
+        redirect("/")
+        return;
+      }
 
-    const res = await fetch("/api/upload/temp-storage/file", {
-      method: "POST",
-      body: formData,
-    });
+      // 2. Generate bucket path
+      const bucketFilePath = `${user.id}/${crypto.randomUUID()}-${file.name}`;
 
-    const result = await res.json();
-    if (res.ok) {
-      showAlert("Success", "File uploaded successfully!");
-      getData().then((data) => {
-        setSharedItems(data);
+      // 3. Upload directly to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from("temporary_storage")
+        .upload(bucketFilePath, file, {
+          upsert: false,
+        });
+
+      if (uploadError) {
+        showAlert("Error", `Upload failed: ${uploadError.message}`);
+        setUploadImage(false);
+        return;
+      }
+
+      // 4. Call API to create metadata and update storage tracking
+      const res = await fetch("/api/upload/temp-storage/file", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type,
+          bucketFilePath: bucketFilePath,
+          duration: selectedDuration,
+        }),
       });
-      await refreshStorage()
-    } else {
-      const errorMsg:string = `Upload failed: ${result.error.message}`;
-      showAlert("Error", errorMsg);
+
+      const result = await res.json();
+      
+      if (res.ok) {
+        showAlert("Success", "File uploaded successfully!");
+        getData().then((data) => {
+          setSharedItems(data);
+        });
+        await refreshStorage();
+      } else {
+        // If metadata creation fails, clean up the uploaded file
+        await supabase.storage.from("temporary_storage").remove([bucketFilePath]);
+        const errorMsg: string = `Upload failed: ${result.error || result.message || 'Unknown error'}`;
+        showAlert("Error", errorMsg);
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      showAlert("Error", "Upload failed. Please try again.");
+    } finally {
+      setUploadImage(false);
     }
-    setUploadImage(false);
   }
 
   async function uploadTextClient() {
