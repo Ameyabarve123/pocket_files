@@ -109,7 +109,8 @@ export default function LongTermStorage() {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to upload file');
+      const errorData = await response.json().catch(() => ({ message: 'Failed to upload file' }));
+      throw new Error(errorData.message || 'Failed to upload file');
     }
     await refreshStorage();
     return await response.json();
@@ -130,7 +131,8 @@ export default function LongTermStorage() {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to upload text content');
+      const errorData = await response.json().catch(() => ({ message: 'Failed to upload text content' }));
+      throw new Error(errorData.message || 'Failed to upload text content');
     }
     await refreshStorage();
     return await response.json();
@@ -204,7 +206,8 @@ export default function LongTermStorage() {
         }
       }
     } catch (error) {
-      showAlert('Error', "An error occurred" + error);
+      showAlert('Error', "An error occurred " + error);
+      
     } finally {
       setIsUploading(false);
     }
