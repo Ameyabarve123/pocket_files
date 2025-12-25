@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useState, useEffect } from "react";
 import { useStorage } from "@/components/storage-context";
 import { useAlert } from "@/components/use-alert";
+import { gzipSync } from 'fflate';
 import LongTermSearchBar from "@/components/long-term-search-bar";
 
 
@@ -37,6 +38,50 @@ export default function LongTermStorage() {
   useEffect(() => {
     loadFolders();
   }, [currentFolderId]);
+
+  function getMimeTypeFromFilename(filename: string): string {
+    const extension = filename.split('.').pop()?.toLowerCase();
+    
+    const mimeTypes: Record<string, string> = {
+      // Jupyter notebooks
+      'ipynb': 'application/x-ipynb+json',
+      
+      // Text files
+      'txt': 'text/plain',
+      'csv': 'text/csv',
+      'json': 'application/json',
+      'xml': 'application/xml',
+      'html': 'text/html',
+      'css': 'text/css',
+      'js': 'application/javascript',
+      'md': 'text/markdown',
+      
+      // Images
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'gif': 'image/gif',
+      'svg': 'image/svg+xml',
+      'webp': 'image/webp',
+      
+      // Documents
+      'pdf': 'application/pdf',
+      'doc': 'application/msword',
+      'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'xls': 'application/vnd.ms-excel',
+      'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      
+      // Archives
+      'zip': 'application/zip',
+      'tar': 'application/x-tar',
+      'gz': 'application/gzip',
+      
+      // Default
+      'default': 'application/octet-stream'
+    };
+    
+    return mimeTypes[extension || 'default'] || mimeTypes['default'];
+  }
 
   async function loadFolders() {
     setIsLoading(true);
@@ -99,7 +144,6 @@ export default function LongTermStorage() {
 
   async function uploadFile(file: File, name: string, description: string, parentId: string | null = null) {
     try {
-      // 1. Get Supabase client and user
       const supabase = createClient(); 
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -107,20 +151,26 @@ export default function LongTermStorage() {
         throw new Error('Not authenticated');
       }
 
-      // 2. Generate bucket path
       const bucket = "user_files";
       const bucketPath = `${user.id}/${crypto.randomUUID()}-${file.name}`;
 
-      // 3. Upload directly to Supabase Storage
+      const buffer = new Uint8Array(await file.arrayBuffer());
+
+      const mimeType = file.type || getMimeTypeFromFilename(file.name);
+      const compressed = gzipSync(buffer, { level: 6 });
+      
+      console.log('Compressed size:', compressed.length);
+
       const { error: uploadError } = await supabase.storage
         .from(bucket)
-        .upload(bucketPath, file);
+        .upload(bucketPath, compressed, {
+          contentType: 'application/gzip'
+        });
 
       if (uploadError) {
         throw new Error(uploadError.message);
       }
 
-      // 4. Call API to create metadata and update storage tracking
       const response = await fetch(`/api/upload/long-term-storage/${parentId || currentFolderId || 'NULL'}`, {
         method: "POST",
         headers: {
@@ -131,13 +181,12 @@ export default function LongTermStorage() {
           description,
           bucketPath,
           bucket,
-          mimeType: file.type,
-          fileSize: file.size,
+          mimeType,
+          fileSize: file.size, // original size
         })
       });
 
       if (!response.ok) {
-        // If metadata creation fails, clean up the uploaded file
         await supabase.storage.from(bucket).remove([bucketPath]);
         const errorData = await response.json().catch(() => ({ error: 'Failed to create file metadata' }));
         throw new Error(errorData.error || errorData.message || 'Failed to create file metadata');
@@ -152,25 +201,62 @@ export default function LongTermStorage() {
   }
 
   async function uploadText(textContent: string, name: string, description: string, parentId: string | null = null) {
-    const blob = new Blob([textContent], { type: 'text/plain' });
-    const file = new File([blob], `${name}.txt`, { type: 'text/plain' });
+    try {
+      const supabase = createClient(); 
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('Not authenticated');
+      }
 
-    const formDataToSend = new FormData();
-    formDataToSend.append("file", file);
-    formDataToSend.append("name", name);
-    formDataToSend.append("description", description);
+      const bucket = "user_files";
+      const bucketPath = `${user.id}/${crypto.randomUUID()}-${name}`;
 
-    const response = await fetch(`/api/upload/long-term-storage/${parentId || currentFolderId || 'NULL'}`, {
-      method: "POST",
-      body: formDataToSend
-    });
+      // Convert string to Uint8Array using TextEncoder
+      const encoder = new TextEncoder();
+      const buffer = encoder.encode(textContent);
+      
+      const mimeType = "text/plain";
+      
+      const compressed = gzipSync(buffer, { level: 6 });
+      
+      const { error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(bucketPath, compressed, {
+          contentType: 'application/gzip'
+        });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Failed to upload text content' }));
-      throw new Error(errorData.message || 'Failed to upload text content');
+      if (uploadError) {
+        throw new Error(uploadError.message);
+      }
+
+      const response = await fetch(`/api/upload/long-term-storage/${parentId || currentFolderId || 'NULL'}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          description,
+          bucketPath,
+          bucket,
+          mimeType,
+          fileSize: buffer.length // original size
+        })
+      });
+
+      if (!response.ok) {
+        await supabase.storage.from(bucket).remove([bucketPath]);
+        const errorData = await response.json().catch(() => ({ error: 'Failed to create file metadata' }));
+        throw new Error(errorData.error || errorData.message || 'Failed to create file metadata');
+      }
+
+      await refreshStorage();
+      return await response.json();
+    } catch (error) {
+      console.error('Upload error:', error);
+      throw error;
     }
-    await refreshStorage();
-    return await response.json();
   }
 
   const handleFolderClick = (folderId: string, folderName: string) => {

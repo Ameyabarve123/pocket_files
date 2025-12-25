@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
       return redirect("/login");
     }
 
-    // Read JSON data (no longer FormData)
+    // Read JSON data 
     const body = await req.json();
     const { fileName, fileSize, fileType, bucketFilePath, duration } = body;
     
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     // Calculate expiration time
     const expiresAt = new Date(Date.now() + parseInt(duration) * 60000).toISOString(); // duration in minutes
     
-    // Run both operations in parallel (file is already uploaded)
+    // Run both operations in parallel  
     const [dbInsert, updateResult] = await Promise.all([
       // Insert into database
       supabase

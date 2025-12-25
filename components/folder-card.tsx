@@ -6,7 +6,7 @@ import { useStorage } from "@/components/storage-context";
 import Modal from "./modal";
 import { useAlert } from "@/components/use-alert";
 import Image from 'next/image'
-
+import { gunzipSync } from 'fflate';
 
 interface FolderCardProps {
   i: string; // title
@@ -82,7 +82,23 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
       
       const response = await fetch(data.url);
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+            
+      let finalBlob: Blob;
+      
+      // Decompress the file
+      const compressedBuffer = new Uint8Array(await blob.arrayBuffer());
+      
+      console.log('Compressed size:', compressedBuffer.length);
+      
+      const decompressed = gunzipSync(compressedBuffer);
+      
+      console.log('Decompressed size:', decompressed.length);
+      
+      // Create blob with original MIME type
+      finalBlob = new Blob([new Uint8Array(decompressed)], { type: mimeType || 'application/octet-stream' });
+
+      // Download the file
+      const url = window.URL.createObjectURL(finalBlob);
       const a = document.createElement('a');
       a.href = url;
       a.download = i;
@@ -90,6 +106,7 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      
       setIsDownloading(false);
     } catch (err) {
       setIsDownloading(false);
@@ -107,7 +124,7 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
       });
 
       if (!res.ok) {
-        showAlert("Error", `Birch`);
+        showAlert("Error", `Error getting file from bucket.`);
         return;
       }
     
@@ -127,29 +144,55 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
   };
 
   useEffect(() => {
-    const loadImage = async () => {
-      try {
-        const encodedBucketPath = encodeURIComponent(bucketPath!);
-        const res = await fetch(`/api/get/long-term-storage/from-bucket/${encodedBucketPath}`, {
-          method: "GET"
-        });
+  const loadImage = async () => {
+    try {
+      const encodedBucketPath = encodeURIComponent(bucketPath!);
+      const res = await fetch(`/api/get/long-term-storage/from-bucket/${encodedBucketPath}`, {
+        method: "GET"
+      });
 
-        if (!res.ok) {
-          showAlert("Error", `Error fetching file content: ${res.statusText}`);
-          return;
-        }
-
-        const { url } = await res.json();
-        setImageUrl(url);
-      } catch (error) {
-        showAlert("Error", "Error getting image");
+      if (!res.ok) {
+        showAlert("Error", `Error fetching file content: ${res.statusText}`);
+        return;
       }
-    };
 
-    if (bucketPath) {
-      loadImage();
+      const { url } = await res.json(); // This is the signed URL to the .gz file
+    
+      // Fetch the compressed data
+      const fileResponse = await fetch(url);
+      const compressedBlob = await fileResponse.blob();
+      
+      // Decompress it
+      const compressedBuffer = new Uint8Array(await compressedBlob.arrayBuffer());
+      const decompressed = gunzipSync(compressedBuffer);
+      
+      // Create a blob from decompressed data with correct MIME type
+      const decompressedBlob = new Blob([new Uint8Array(decompressed)], { 
+        type: mimeType || 'image/jpeg' 
+      });
+      
+      // Create object URL from decompressed blob
+      const objectUrl = URL.createObjectURL(decompressedBlob);
+      if(mimeType?.startsWith('image/')){
+        setImageUrl(objectUrl);
+      }
+    } catch (error) {
+      console.error('Error loading image:', error);
+      showAlert("Error", "Error getting image");
     }
-  }, [bucketPath]);
+  };
+
+  if (bucketPath) {
+    loadImage();
+  }
+  
+  // Cleanup object URL on unmount
+  return () => {
+    if (imageUrl && imageUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(imageUrl);
+    }
+  };
+}, [bucketPath]);
 
   const handleShareFile = async () => {
     setIsSharing(true);
@@ -264,7 +307,7 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
 
       {/* File Details Dialog */}
       {showFileDialog && type === 'file' && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowFileDialog(false)}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-scroll" onClick={() => setShowFileDialog(false)}>
           <div className="bg-background rounded-lg shadow-xl w-full max-w-lg border border-border" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-border">
@@ -311,7 +354,7 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
               {/* Action Buttons */}
               
               <div className="flex flex-col gap-2 pt-4">
-                {(!mimeType?.startsWith('text/') && !isDownloading) && (
+                {(!mimeType?.startsWith('text/plain') && !isDownloading) && (
                   <Button 
                     onClick={handleDownloadFile}
                     className="w-full justify-start"
