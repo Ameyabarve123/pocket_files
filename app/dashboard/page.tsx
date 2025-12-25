@@ -43,9 +43,8 @@ export default function ProtectedPage() {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        showAlert("Error", "Not authenticated");
         setUploadImage(false);
-        redirect("/")
+        redirect("/login")
         return;
       }
 
