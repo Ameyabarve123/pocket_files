@@ -204,7 +204,7 @@ export default function LongTermStorage() {
         }
       }
     } catch (error) {
-      showAlert('Error', "An error occurred");
+      showAlert('Error', "An error occurred" + error);
     } finally {
       setIsUploading(false);
     }
