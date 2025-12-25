@@ -147,33 +147,11 @@ export default function ProtectedPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-
-            {/* View Toggle */}
-            <div className="flex items-center border border-border rounded-lg p-1">
-              <button
-                className={`p-1.5 rounded hover:bg-accent transition-colors ${
-                  view === "grid" ? "bg-accent" : ""
-                }`}
-                onClick={() => setView("grid")}
-              >
-                <Grid3x3 className="w-4 h-4" />
-              </button>
-
-              <button
-                className={`p-1.5 rounded hover:bg-accent transition-colors ${
-                  view === "list" ? "bg-accent" : ""
-                }`}
-                onClick={() => setView("list")}
-              >
-                <List className="w-4 h-4" />
-              </button>
-            </div>
           </div>
         </div>
 
         {/* Items List */}
         {Array.isArray(filteredItems) && filteredItems.length > 0 ? (
-          view === "grid" ? (
             // GRID VIEW
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 max-h-[600px] overflow-y-auto pr-2 scrollbar-thin">
               {filteredItems.map((row) => (
@@ -193,28 +171,8 @@ export default function ProtectedPage() {
                 />
               ))}
             </div>
-          ) : (
-            // LIST VIEW
-            <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 scrollbar-thin">
-              {filteredItems.map((row) => (
-                <DataCard
-                  key={row.id}
-                  id={row.id}
-                  uid={row.uid}
-                  file_name={row.file_name}
-                  file_size={row.file_size}
-                  file_type={row.file_type}
-                  data={row.data}
-                  expires_at={row.expires_at}
-                  created_at={row.created_at}
-                  in_bucket={row.in_bucket}
-                  bucket_file_path={row.bucket_file_path}
-                  view="list"
-                />
-              ))}
-            </div>
           )
-        ) : (
+          : (
           // Empty state
           <div className="border-2 border-dashed border-border rounded-2xl p-12 text-center">
             <div className="max-w-sm mx-auto space-y-4">
