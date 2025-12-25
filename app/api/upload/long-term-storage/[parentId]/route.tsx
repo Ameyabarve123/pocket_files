@@ -25,19 +25,21 @@ export async function POST(
       return redirect("/login");
     }
 
-    // Read form data
-    const formData = await req.formData();
-    const file = formData.get("file") as File;
-    const name = formData.get("name") as string;
-    const description = formData.get("description") as string;
+    // Read JSON data 
+    const body = await req.json();
+    const { name, description, bucketPath, bucket, mimeType, fileSize } = body;
       
     // Validate inputs
-    if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    if (!bucketPath) {
+      return NextResponse.json({ error: "No bucket path provided" }, { status: 400 });
     }
 
     if (!name) {
       return NextResponse.json({ error: "No name provided" }, { status: 400 });
+    }
+
+    if (!fileSize) {
+      return NextResponse.json({ error: "No file size provided" }, { status: 400 });
     }
 
     // Get current storage used
@@ -49,24 +51,20 @@ export async function POST(
 
     const currentStorage = profile?.storage_used || 0;
     const maxStorage = profile?.max_storage; 
-    const newStorage = currentStorage + file.size;
+    const newStorage = currentStorage + fileSize;
 
     if (newStorage > maxStorage) {
+      // Delete the file from storage since it exceeds quota
+      await supabase.storage.from(bucket).remove([bucketPath]);
       return NextResponse.json({ error: "Can't add new data. Storage limit exceeded" }, { status: 400 });
     }
-
-    const bucket = "user_files";
-    const bucketPath = `${user.id}/${crypto.randomUUID()}-${file.name}`;
 
     // Handle NULL parent_id
     let { parentId } = await params;
     let parent_Id: string | null = parentId === 'NULL' ? null : parentId;
     
-    // Run all 3 operations in parallel
-    const [uploadResult, insertResult, updateResult] = await Promise.all([
-      // Upload to bucket
-      supabase.storage.from(bucket).upload(bucketPath, file),
-      
+    // Run both operations in parallel (file is already uploaded)
+    const [insertResult, updateResult] = await Promise.all([
       // Insert metadata
       supabase.from("storage_nodes").insert({
         uid: user.id, 
@@ -76,8 +74,8 @@ export async function POST(
         parent_id: parent_Id, 
         bucket,
         bucket_path: bucketPath,
-        mime_type: file.type,
-        file_size: file.size,
+        mime_type: mimeType,
+        file_size: fileSize,
       }).select().single(),
 
       // Update storage used
@@ -87,18 +85,15 @@ export async function POST(
         .eq("id", user.id)
     ]);
 
-    if (uploadResult.error) {
-      return NextResponse.json({ error: uploadResult.error.message }, { status: 500 });
-    }
-
     if (insertResult.error) {
+      // If metadata creation fails, clean up the uploaded file
+      await supabase.storage.from(bucket).remove([bucketPath]);
       return NextResponse.json({ error: insertResult.error.message }, { status: 500 });
     }
 
     if (updateResult.error) {
       console.error("Storage update failed:", updateResult.error);
       return NextResponse.json({ error: updateResult.error.message }, { status: 500 });
-      // Don't fail the request, but log it
     }
 
     // Generate embeddings in background

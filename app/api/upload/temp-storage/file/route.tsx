@@ -21,14 +21,21 @@ export async function POST(req: NextRequest) {
       return redirect("/login");
     }
 
-    // Read form data
-    const formData = await req.formData();
-    const file = formData.get("file") as File;
-    const duration = formData.get("duration") as string;
+    // Read JSON data (no longer FormData)
+    const body = await req.json();
+    const { fileName, fileSize, fileType, bucketFilePath, duration } = body;
     
     // Validate inputs
-    if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    if (!bucketFilePath) {
+      return NextResponse.json({ error: "No bucket path provided" }, { status: 400 });
+    }
+
+    if (!fileName) {
+      return NextResponse.json({ error: "No file name provided" }, { status: 400 });
+    }
+
+    if (!fileSize) {
+      return NextResponse.json({ error: "No file size provided" }, { status: 400 });
     }
 
     if (!duration || isNaN(parseInt(duration))) {
@@ -44,57 +51,56 @@ export async function POST(req: NextRequest) {
 
     const currentStorage = profile?.storage_used || 0;
     const maxStorage = profile?.max_storage;
-    const newStorage = currentStorage + file.size;
+    const newStorage = currentStorage + fileSize;
 
     if (newStorage > maxStorage) {
+      // Delete the file from storage since it exceeds quota
+      await supabase.storage.from("temporary_storage").remove([bucketFilePath]);
       return NextResponse.json({ error: "Can't add new data. Storage limit exceeded" }, { status: 400 });
     }
 
-    // Upload to Supabase Storage
-    const bucket_file_path = `${user.id}/${crypto.randomUUID()}-${file.name}`;
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from("temporary_storage")
-      .upload(bucket_file_path, file, {
-        upsert: false,
-      });
-
-    if (uploadError) {
-      return NextResponse.json({ error: uploadError.message }, { status: 500 });
-    }
-
-    // Insert into database
+    // Calculate expiration time
     const expiresAt = new Date(Date.now() + parseInt(duration) * 60000).toISOString(); // duration in minutes
     
-    const { data: dbInsert, error: dbError } = await supabase
-      .from("temp_storage")
-      .insert({
-        uid: user.id,
-        file_name: file.name,
-        file_size: file.size,
-        file_type: file.type,
-        data: uploadData.path, // Storage path
-        in_bucket: 1,
-        expires_at: expiresAt,
-        bucket_file_path: bucket_file_path
-      })
-      .select()
-      .single();
+    // Run both operations in parallel (file is already uploaded)
+    const [dbInsert, updateResult] = await Promise.all([
+      // Insert into database
+      supabase
+        .from("temp_storage")
+        .insert({
+          uid: user.id,
+          file_name: fileName,
+          file_size: fileSize,
+          file_type: fileType,
+          data: bucketFilePath, // Storage path
+          in_bucket: 1,
+          expires_at: expiresAt,
+          bucket_file_path: bucketFilePath
+        })
+        .select()
+        .single(),
 
-    if (dbError) {
-      return NextResponse.json({ error: dbError.message }, { status: 500 });
+      // Update storage in profile
+      supabase
+        .from("profiles")
+        .update({ storage_used: newStorage })
+        .eq("id", user.id)
+    ]);
+
+    if (dbInsert.error) {
+      // If metadata creation fails, clean up the uploaded file
+      await supabase.storage.from("temporary_storage").remove([bucketFilePath]);
+      return NextResponse.json({ error: dbInsert.error.message }, { status: 500 });
     }
 
-    // Update storage in profile
-    await supabase
-    .from("profiles")
-    .update({ 
-      storage_used: newStorage
-    })
-    .eq("id", user.id);
+    if (updateResult.error) {
+      console.error("Storage update failed:", updateResult.error);
+      return NextResponse.json({ error: updateResult.error.message }, { status: 500 });
+    }
 
     return NextResponse.json({
-      storage: uploadData,
-      database: dbInsert,
+      storage: { path: bucketFilePath },
+      database: dbInsert.data,
     });
   } catch (err) {
     console.error("Upload error:", err);
