@@ -7,6 +7,7 @@ import { useStorage } from "./storage-context";
 import Image from "next/image";
 import { useAlert } from "./use-alert";
 import Modal from "./modal";
+import { gunzipSync } from 'fflate';
 
 interface DataCardProps {
   id: string;
@@ -44,6 +45,35 @@ const DataCard = ({
   const [openModal, setOpenModal] = useState(false);
   const [confirmAction, setConfirmAction] = useState(false);
   const { refreshStorage } = useStorage();
+  const [displayImage, setDisplayImage] = useState<string | null>(null)
+
+  useEffect(() => {
+    if(!isImage) return;
+    let objectUrl: string | null = null;
+    const fetchData = async () => {
+      const fileResponse = await fetch(data);
+      const compressedBlob = await fileResponse.blob();
+      
+      // Decompress it
+      const compressedBuffer = new Uint8Array(await compressedBlob.arrayBuffer());
+      const decompressed = gunzipSync(compressedBuffer);
+      
+      // Create a blob from decompressed data with correct MIME type
+      const decompressedBlob = new Blob([new Uint8Array(decompressed)], { 
+        type: file_type || 'image/jpeg' 
+      });
+      objectUrl = URL.createObjectURL(decompressedBlob)
+      setDisplayImage(objectUrl);
+    }
+
+    fetchData();
+  
+    return () => {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [data, file_type, isImage]);
 
   // Determine file type for icon
   const getFileIcon = () => {
@@ -68,12 +98,15 @@ const DataCard = ({
     return <File className="w-6 h-6 text-gray-500" />;
   };
 
-  // Format file size
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-  };
+  function formatFileSize(bytes: number) {
+    if (bytes === 0) return "0 B";
+    const k = 1000;
+    const sizes = ["B", "KB", "MB", "GB", "TB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    const value = bytes / Math.pow(k, i);
+
+    return `${value.toFixed(value >= 100 ? 0 : 2)} ${sizes[i]}`;
+  }
 
   const deleteExpired = async() => {
     try {
@@ -135,8 +168,16 @@ const DataCard = ({
   // Copy text to clipboard save for link
   const handleCopyLink = async () => {
     setIsCopying(true);
+    if(!displayImage){
+      showAlert('Error', 'Failed to copy. Shareable link was unable to be created');
+      setIsCopying(false);
+      return;
+    }
     try {
-      await navigator.clipboard.writeText(data);
+      console.log(data);
+      const shareableLink = `${window.location.origin}/api/get/view-image?url=${encodeURIComponent(data)}&type=${encodeURIComponent(file_type)}`;
+    
+      await navigator.clipboard.writeText(shareableLink);
       if (in_bucket === 1)
         showAlert("Warning", 'Shareable Link copied to clipboard! NOTE: EVEN IF YOU DELETE THE FILE, THE LINK WILL STILL WORK UNTIL EXPIRATION.');
       else
@@ -155,7 +196,12 @@ const DataCard = ({
     try {
       const response = await fetch(data);
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+
+      const compressedBuffer = new Uint8Array(await blob.arrayBuffer());
+      const decompressed = gunzipSync(compressedBuffer);
+      const finalBlob = new Blob([new Uint8Array(decompressed)], { type: file_type || 'application/octet-stream' });
+      const url = window.URL.createObjectURL(finalBlob);
+      
       const a = document.createElement('a');
       a.href = url;
       a.download = file_name;
@@ -217,7 +263,7 @@ const DataCard = ({
 
   const {showAlert } = useAlert();
   
-  return view === "grid" ? (
+  return (
     <div 
       key={id}
       className="bg-card border border-border rounded-xl p-3 hover:shadow-md transition-shadow group flex flex-col"
@@ -232,9 +278,9 @@ const DataCard = ({
       }
       {/* Image / Icon */}
       <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-muted flex items-center justify-center">
-        {isImage ? (
+        {isImage && displayImage? (
           <Image 
-            src={data}
+            src={displayImage}
             alt={file_name}
             width={500}
             height={500}
@@ -312,100 +358,6 @@ const DataCard = ({
         <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground bg-muted px-2 py-1 rounded w-fit">
           <Clock className="w-3 h-3" />
           <span>{timeRemaining}</span>
-        </div>
-      </div>
-    </div>
-  ) : (
-    <div key={id} className="bg-card border border-border rounded-xl p-4 hover:shadow-md transition-shadow group">
-      <div className="flex items-start gap-4">
-        {/* Icon based on file type */}
-        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-          {getFileIcon()}
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2 mb-1">
-            <h3 className="font-semibold text-sm truncate">{in_bucket === 0 ? data : bucket_file_path}</h3>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                <Clock className="w-3 h-3" />
-                <span>{timeRemaining}</span>
-              </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <MoreVertical className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {file_type} • {formatFileSize(file_size)}
-          </p>
-
-          {/* Image Preview */}
-          {isImage && (
-            <div className="mt-3 rounded-lg overflow-hidden border border-border">
-              <img 
-                src={data} 
-                alt={file_name} 
-                className="w-full max-h-48 object-contain bg-muted"
-              />
-            </div>
-          )}
-          
-          {/* Action buttons */}
-          <div className="flex items-center gap-2 mt-3">
-            {in_bucket === 1 ? (
-              <>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-8 text-xs"
-                  onClick={handleCopyLink}
-                  disabled={isCopying}
-                >
-                  <Share className="w-3 h-3 mr-1" />
-                  {isCopying ? 'Copying...' : 'Share'}
-                </Button> 
-
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-8 text-xs"
-                  onClick={handleDownload}
-                  disabled={isDownloading}
-                >
-                  <Download className="w-3 h-3 mr-1" />
-                  {isDownloading ? 'Downloading...' : 'Download'}
-                </Button>
-              </>
-            ) : (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-8 text-xs"
-                onClick={handleCopyLink}
-                disabled={isCopying}
-              >
-                <Copy className="w-3 h-3 mr-1" />
-                {isCopying ? 'Copying...' : 'Copy Text'}
-              </Button>
-            )}
-
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-8 text-xs text-destructive hover:text-destructive"
-              onClick={() => setOpenModal(true)}
-              disabled={isDeleting}
-            >
-              <X className="w-3 h-3 mr-1" />
-              {isDeleting ? 'Deleting...' : 'Delete'}
-            </Button>
-          </div>
         </div>
       </div>
     </div>

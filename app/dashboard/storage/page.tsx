@@ -159,8 +159,6 @@ export default function LongTermStorage() {
       const mimeType = file.type || getMimeTypeFromFilename(file.name);
       const compressed = gzipSync(buffer, { level: 6 });
       
-      console.log('Compressed size:', compressed.length);
-
       const { error: uploadError } = await supabase.storage
         .from(bucket)
         .upload(bucketPath, compressed, {

@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useStorage } from '@/components/storage-context'; 
 import { useAlert } from "@/components/use-alert";
 import { redirect } from "next/navigation";
+import { gzipSync } from 'fflate';
 
 export default function ProtectedPage() {
   const { refreshStorage } = useStorage();
@@ -32,6 +33,50 @@ export default function ProtectedPage() {
     );
   });
 
+  function getMimeTypeFromFilename(filename: string): string {
+    const extension = filename.split('.').pop()?.toLowerCase();
+    
+    const mimeTypes: Record<string, string> = {
+      // Jupyter notebooks
+      'ipynb': 'application/x-ipynb+json',
+      
+      // Text files
+      'txt': 'text/plain',
+      'csv': 'text/csv',
+      'json': 'application/json',
+      'xml': 'application/xml',
+      'html': 'text/html',
+      'css': 'text/css',
+      'js': 'application/javascript',
+      'md': 'text/markdown',
+      
+      // Images
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'gif': 'image/gif',
+      'svg': 'image/svg+xml',
+      'webp': 'image/webp',
+      
+      // Documents
+      'pdf': 'application/pdf',
+      'doc': 'application/msword',
+      'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'xls': 'application/vnd.ms-excel',
+      'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      
+      // Archives
+      'zip': 'application/zip',
+      'tar': 'application/x-tar',
+      'gz': 'application/gzip',
+      
+      // Default
+      'default': 'application/octet-stream'
+    };
+    
+    return mimeTypes[extension || 'default'] || mimeTypes['default'];
+  }
+
   async function uploadImageClient(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -51,11 +96,17 @@ export default function ProtectedPage() {
       // 2. Generate bucket path
       const bucketFilePath = `${user.id}/${crypto.randomUUID()}-${file.name}`;
 
+      const buffer = new Uint8Array(await file.arrayBuffer());
+
+      const mimeType = file.type || getMimeTypeFromFilename(file.name);
+      const compressed = gzipSync(buffer, { level: 6 });
+      
       // 3. Upload directly to Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from("temporary_storage")
-        .upload(bucketFilePath, file, {
-          upsert: false,
+        .upload(bucketFilePath,  compressed, {
+          contentType: 'application/gzip',
+          upsert:false
         });
 
       if (uploadError) {
@@ -73,7 +124,7 @@ export default function ProtectedPage() {
         body: JSON.stringify({
           fileName: file.name,
           fileSize: file.size,
-          fileType: file.type,
+          fileType: mimeType,
           bucketFilePath: bucketFilePath,
           duration: selectedDuration,
         }),

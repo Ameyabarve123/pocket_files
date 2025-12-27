@@ -65,6 +65,16 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
     }
   };
 
+  function formatBytes(bytes: number) {
+    if (bytes === 0) return "0 B";
+    const k = 1000;
+    const sizes = ["B", "KB", "MB", "GB", "TB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    const value = bytes / Math.pow(k, i);
+
+    return `${value.toFixed(value >= 100 ? 0 : 2)} ${sizes[i]}`;
+  }
+
   const handleClick = () => {
     if (type === 'folder' && onClick) {
       onClick();
@@ -87,13 +97,9 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
       
       // Decompress the file
       const compressedBuffer = new Uint8Array(await blob.arrayBuffer());
-      
-      console.log('Compressed size:', compressedBuffer.length);
-      
+            
       const decompressed = gunzipSync(compressedBuffer);
-      
-      console.log('Decompressed size:', decompressed.length);
-      
+            
       // Create blob with original MIME type
       finalBlob = new Blob([new Uint8Array(decompressed)], { type: mimeType || 'application/octet-stream' });
 
@@ -125,6 +131,7 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
 
       if (!res.ok) {
         showAlert("Error", `Error getting file from bucket.`);
+        setCopyingText(false);
         return;
       }
     
@@ -144,58 +151,63 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
   };
 
   useEffect(() => {
-  const loadImage = async () => {
-    try {
-      const encodedBucketPath = encodeURIComponent(bucketPath!);
-      const res = await fetch(`/api/get/long-term-storage/from-bucket/${encodedBucketPath}`, {
-        method: "GET"
-      });
+    const loadImage = async () => {
+      try {
+        const encodedBucketPath = encodeURIComponent(bucketPath!);
+        const res = await fetch(`/api/get/long-term-storage/from-bucket/${encodedBucketPath}`, {
+          method: "GET"
+        });
 
-      if (!res.ok) {
-        showAlert("Error", `Error fetching file content: ${res.statusText}`);
-        return;
+        if (!res.ok) {
+          showAlert("Error", `Error fetching file content: ${res.statusText}`);
+          return;
+        }
+
+        const { url } = await res.json(); // This is the signed URL to the .gz file
+      
+        // Fetch the compressed data
+        const fileResponse = await fetch(url);
+        const compressedBlob = await fileResponse.blob();
+        
+        // Decompress it
+        const compressedBuffer = new Uint8Array(await compressedBlob.arrayBuffer());
+        const decompressed = gunzipSync(compressedBuffer);
+        
+        // Create a blob from decompressed data with correct MIME type
+        const decompressedBlob = new Blob([new Uint8Array(decompressed)], { 
+          type: mimeType || 'image/jpeg' 
+        });
+        
+        // Create object URL from decompressed blob
+        const objectUrl = URL.createObjectURL(decompressedBlob);
+        if(mimeType?.startsWith('image/')){
+          setImageUrl(objectUrl);
+        }
+      } catch (error) {
+        console.error('Error loading image:', error);
+        showAlert("Error", "Error getting image");
       }
+    };
 
-      const { url } = await res.json(); // This is the signed URL to the .gz file
+    if (bucketPath) {
+      loadImage();
+    }
     
-      // Fetch the compressed data
-      const fileResponse = await fetch(url);
-      const compressedBlob = await fileResponse.blob();
-      
-      // Decompress it
-      const compressedBuffer = new Uint8Array(await compressedBlob.arrayBuffer());
-      const decompressed = gunzipSync(compressedBuffer);
-      
-      // Create a blob from decompressed data with correct MIME type
-      const decompressedBlob = new Blob([new Uint8Array(decompressed)], { 
-        type: mimeType || 'image/jpeg' 
-      });
-      
-      // Create object URL from decompressed blob
-      const objectUrl = URL.createObjectURL(decompressedBlob);
-      if(mimeType?.startsWith('image/')){
-        setImageUrl(objectUrl);
+    // Cleanup object URL on unmount
+    return () => {
+      if (imageUrl && imageUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(imageUrl);
       }
-    } catch (error) {
-      console.error('Error loading image:', error);
-      showAlert("Error", "Error getting image");
-    }
-  };
-
-  if (bucketPath) {
-    loadImage();
-  }
-  
-  // Cleanup object URL on unmount
-  return () => {
-    if (imageUrl && imageUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(imageUrl);
-    }
-  };
-}, [bucketPath]);
+    };
+  }, [bucketPath]);
 
   const handleShareFile = async () => {
     setIsSharing(true);
+    if(!imageUrl){
+      showAlert("Error", `Error creating shareable link`);
+      setIsSharing(false);
+      return;
+    }
     try {
       const encodedBucketPath = encodeURIComponent(bucketPath!);
       const res = await fetch(`/api/get/long-term-storage/from-bucket/${encodedBucketPath}`, {
@@ -203,16 +215,19 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
       });
 
       if (!res.ok) {
-        showAlert("Error", `Error fetching file content: ${res.statusText}`);
+        showAlert("Error", `Error getting file from bucket.`);
+        setIsSharing(false);
         return;
       }
-
+    
       const { url } = await res.json();
 
-      await navigator.clipboard.writeText(url);
+      const shareableLink = `${window.location.origin}/api/get/view-image?url=${encodeURIComponent(url)}&type=${encodeURIComponent(mimeType!)}`;
+    
+      await navigator.clipboard.writeText(shareableLink);
       showAlert("Success", "File content copied to clipboard!");
       setIsSharing(false);
-      return url;
+      return imageUrl;
     } catch (error) {
       setIsSharing(false);
       showAlert("Error", "Error copying content");
@@ -345,7 +360,7 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
                   <label className="text-muted-foreground">Size</label>
                   <p className="font-medium">
                     {fileSize 
-                      ? `${(fileSize / 1024).toFixed(2)} KB`
+                      ? `${formatBytes(fileSize)}`
                       : 'Unknown'}
                   </p>
                 </div>

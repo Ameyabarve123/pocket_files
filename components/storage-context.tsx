@@ -46,6 +46,7 @@ export function StorageProvider({ children }: { children: ReactNode }) {
         setUserName(data.username);
         setProfilePicture(data.profile_picture);
         setSubType(data.subscription_type);
+        
       }
     } catch (error) {
       console.error('Error fetching storage:', error);
