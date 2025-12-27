@@ -33,7 +33,6 @@ const LongTermSearchBar = ({
       setSearching(false);
       return;
     }
-    console.log("entered")
     const url = `/api/get/long-term-storage/vector-search?query=${encodeURIComponent(text)}`;
     const res = await fetch(url);
 

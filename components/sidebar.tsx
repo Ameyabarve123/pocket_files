@@ -22,11 +22,12 @@ const navItems = [
 
 function formatBytes(bytes: number) {
   if (bytes === 0) return "0 B";
-  const k = 1024;
+  const k = 1000;
   const sizes = ["B", "KB", "MB", "GB", "TB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   const value = bytes / Math.pow(k, i);
-  return `${value.toFixed(value >= 100 ? 0 : 1)} ${sizes[i]}`;
+
+  return `${value.toFixed(value >= 100 ? 0 : 2)} ${sizes[i]}`;
 }
 
 export function Sidebar() {
