@@ -7,6 +7,15 @@ export async function GET(req: NextRequest) {
   const decision = await apiAj.protect(req, { requested: 2 });
     
   if (decision.isDenied()) {
+    if (decision.reason.isRateLimit()) {
+      return Response.json({ error: "Rate limit hit" }, { status: 429 });
+    }
+    
+    if (decision.reason.isBot()) {
+      return Response.json({ error: "Bot detected" }, { status: 403 });
+    }
+    
+    // Fallback for other denial reasons
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
   

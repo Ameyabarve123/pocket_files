@@ -58,7 +58,8 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
         }
       }
     } catch (error) {
-      showAlert('Error', "An error occurred while deleting");
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+      showAlert("Error", errorMessage);
     } finally {
       setIsDeleting(false);
       setOpenModal(false);
@@ -116,8 +117,8 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
       setIsDownloading(false);
     } catch (err) {
       setIsDownloading(false);
-      console.error('Download error:', err);
-      showAlert("Error", 'Failed to download file');
+      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
+      showAlert("Error", errorMessage);
     }
   };
 
@@ -130,7 +131,7 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
       });
 
       if (!res.ok) {
-        showAlert("Error", `Error getting file from bucket.`);
+        showAlert("Error", res.statusText);
         setCopyingText(false);
         return;
       }
@@ -145,7 +146,8 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
       setCopyingText(false);
       return text;
     } catch (error) {
-      showAlert("Error", "Error copying content");
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+      showAlert("Error", errorMessage);
       setCopyingText(false);
     }
   };
@@ -184,8 +186,8 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
           setImageUrl(objectUrl);
         }
       } catch (error) {
-        console.error('Error loading image:', error);
-        showAlert("Error", "Error getting image");
+        const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+        showAlert("Error", errorMessage);
       }
     };
 
@@ -215,7 +217,7 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
       });
 
       if (!res.ok) {
-        showAlert("Error", `Error getting file from bucket.`);
+        showAlert("Error", res.statusText);
         setIsSharing(false);
         return;
       }
@@ -230,7 +232,8 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
       return imageUrl;
     } catch (error) {
       setIsSharing(false);
-      showAlert("Error", "Error copying content");
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+      showAlert("Error", errorMessage);
     }
     setIsSharing(false);
   };

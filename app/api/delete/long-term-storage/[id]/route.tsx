@@ -10,6 +10,15 @@ export async function DELETE(
   const decision = await apiAj.protect(req, { requested: 2 });
   
   if (decision.isDenied()) {
+    if (decision.reason.isRateLimit()) {
+      return Response.json({ error: "Rate limit hit" }, { status: 429 });
+    }
+    
+    if (decision.reason.isBot()) {
+      return Response.json({ error: "Bot detected" }, { status: 403 });
+    }
+    
+    // Fallback for other denial reasons
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
   const supabase = await createClient();
@@ -77,21 +86,6 @@ export async function DELETE(
       .eq("uid", user.id);
 
     if (deleteError) throw deleteError;
-
-    // ❌ DELETE THIS ENTIRE SECTION - trigger handles it!
-    // Update storage quota
-    // if (totalBytes > 0) {
-    //   const { data: profile } = await supabase
-    //     .from("profiles")
-    //     .select("storage_used")
-    //     .eq("id", user.id)
-    //     .single();
-    //
-    //   await supabase
-    //     .from("profiles")
-    //     .update({ storage_used: Math.max(0, (profile?.storage_used || 0) - totalBytes) })
-    //     .eq("id", user.id);
-    // }
 
     return NextResponse.json({
       success: true,

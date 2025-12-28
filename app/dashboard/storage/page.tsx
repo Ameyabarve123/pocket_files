@@ -9,6 +9,7 @@ import { useStorage } from "@/components/storage-context";
 import { useAlert } from "@/components/use-alert";
 import { gzipSync } from 'fflate';
 import LongTermSearchBar from "@/components/long-term-search-bar";
+import { redirect } from "next/navigation";
 
 
 export default function LongTermStorage() {
@@ -148,7 +149,7 @@ export default function LongTermStorage() {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        throw new Error('Not authenticated');
+        redirect("/login");
       }
 
       const bucket = "user_files";
@@ -166,7 +167,9 @@ export default function LongTermStorage() {
         });
 
       if (uploadError) {
-        throw new Error(uploadError.message);
+        const errorMsg:string = `Error creating folder: ${uploadError}` 
+        showAlert('Error', errorMsg);
+        return;
       }
 
       const response = await fetch(`/api/upload/long-term-storage/${parentId || currentFolderId || 'NULL'}`, {
@@ -186,15 +189,17 @@ export default function LongTermStorage() {
 
       if (!response.ok) {
         await supabase.storage.from(bucket).remove([bucketPath]);
-        const errorData = await response.json().catch(() => ({ error: 'Failed to create file metadata' }));
-        throw new Error(errorData.error || errorData.message || 'Failed to create file metadata');
+        const errorMsg:string = `Error creating folder: ${response.statusText}` 
+        showAlert('Error', errorMsg);
+        return;
       }
 
       await refreshStorage();
       return await response.json();
     } catch (error) {
-      console.error('Upload error:', error);
-      throw error;
+      const errorMsg:string = `Error creating folder: ${error}` 
+      showAlert('Error', errorMsg);
+      return
     }
   }
 
@@ -204,7 +209,7 @@ export default function LongTermStorage() {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        throw new Error('Not authenticated');
+        redirect("/login");
       }
 
       const bucket = "user_files";
@@ -225,7 +230,8 @@ export default function LongTermStorage() {
         });
 
       if (uploadError) {
-        throw new Error(uploadError.message);
+        showAlert('Error', uploadError.message);
+        return;
       }
 
       const response = await fetch(`/api/upload/long-term-storage/${parentId || currentFolderId || 'NULL'}`, {
@@ -245,15 +251,16 @@ export default function LongTermStorage() {
 
       if (!response.ok) {
         await supabase.storage.from(bucket).remove([bucketPath]);
-        const errorData = await response.json().catch(() => ({ error: 'Failed to create file metadata' }));
-        throw new Error(errorData.error || errorData.message || 'Failed to create file metadata');
+        const errorMsg:string = `Error creating folder: ${response.statusText}` 
+        showAlert('Error', errorMsg);
       }
 
       await refreshStorage();
       return await response.json();
     } catch (error) {
-      console.error('Upload error:', error);
-      throw error;
+      const errorMsg:string = `Error creating folder: ${error}` 
+      showAlert('Error', errorMsg);
+      return
     }
   }
 
@@ -427,7 +434,7 @@ export default function LongTermStorage() {
                 <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
                   <Plus className="w-6 h-6" />
                 </div>
-                <span className="text-sm font-medium">Create Folder</span>
+                <span className="text-sm font-medium">New</span>
               </button>
             </div>
 
