@@ -6,9 +6,9 @@ export const apiAj = arcjet({
     detectBot({ mode: "LIVE", allow: ["CATEGORY:SEARCH_ENGINE"] }),
     tokenBucket({
       mode: "LIVE",
-      refillRate: 10,
+      refillRate: 20,
       interval: 60,
-      capacity: 100,
+      capacity: 700,
     }),
   ],
 });

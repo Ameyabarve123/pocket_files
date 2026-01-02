@@ -90,8 +90,10 @@ export default function LongTermStorage() {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       
-      if (!user) return;
-
+      if (!user) {
+        redirect("/login")
+        return;
+      }
       // Build query based on whether we're at root or in a folder
       let query = supabase
         .from("storage_nodes")
@@ -108,7 +110,8 @@ export default function LongTermStorage() {
       const { data, error } = await query.order("created_at", { ascending: false });
 
       if (error) {
-        console.error("Error loading items:", error);
+        showAlert("Error", `Upload failed: ${error}`);
+        return;
       } else {
         // Sort so folders appear first, then files
         const sortedData = (data || []).sort((a, b) => {
@@ -120,7 +123,8 @@ export default function LongTermStorage() {
         setFolders(sortedData);
       }
     } catch (error) {
-      console.error("Error:", error);
+      showAlert("Error", `Upload failed: ${error}`);
+      return;
     } finally {
       setIsLoading(false);
     }
@@ -139,7 +143,9 @@ export default function LongTermStorage() {
       })
       .select("id, name, type, parent_id, bucket, bucket_path, mime_type, file_size, created_at, description")
       .single();
-
+    if(error){
+      showAlert("Error", `Upload failed: ${error}`);
+    }
     return { data, error };
   }
 
@@ -150,6 +156,7 @@ export default function LongTermStorage() {
       
       if (!user) {
         redirect("/login");
+        return;
       }
 
       const bucket = "user_files";
@@ -260,7 +267,7 @@ export default function LongTermStorage() {
     } catch (error) {
       const errorMsg:string = `Error creating folder: ${error}` 
       showAlert('Error', errorMsg);
-      return
+      return;
     }
   }
 
