@@ -14,6 +14,33 @@ export default async function Home() {
     redirect("/dashboard"); 
   }
 
+  const dataDescriptions = {
+    "firstBlock": {
+      "one": {
+        "title" : "Temporary Share",
+        "content": "Uploads auto delete for reduced clutter when sharing files between devices."
+      },
+      "two" : {
+        "title" : "Quick Share",
+        "content": "Create temporary links that share your uploads with others."
+      }
+    },
+    "secondBlock": {
+      "one": {
+        "title" : "Long Term Storage",
+        "content": "Store links to your favorite videos, or files you want to keep on the cloud."
+      },
+      "two": {
+        "title" : "AI powered search",
+        "content": "Search for content based on your mood with AI powered search."
+      }, 
+      "three" : {
+        "title" : "Quick Share",
+        "content": "Create temporary links that share your uploads with others."
+      }
+    }
+  }
+
   return (
     <main className="min-h-screen flex flex-col items-center">
       <div className="flex-1 w-full flex flex-col items-center">
@@ -57,43 +84,26 @@ export default async function Home() {
 
           {/* Features Grid */}
           <section className="w-full py-24">
-            <div className="px-4 md:px-8 lg:px-12">
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="px-4 grid-cols-1 md:px-8 lg:px-12">
+              <div className="grid gap-8">
                 <LandingCard
                   icon={Clock}
                   title="Share Files Quickly"
                   description="Share files between devices instantly that expire automatically for enhanced security."
+                  imageURL="/homePageBlack.png"
+                  imageDescription="Picture quick share page"
+                  accordianData={dataDescriptions["firstBlock"]}
                 />
                 
                 <LandingCard
                   icon={FolderOpen}
                   title="Smart Storage"
                   description="Keep all your important links and files organized in one secure, searchable location."
+                  imageURL="/longTermStorageBlack.png"
+                  imageDescription="Picture long term storage page"
+                  accordianData={dataDescriptions["secondBlock"]}
                 />
-                
-                <LandingCard
-                  icon={Link2}
-                  title="Quick Links"
-                  description="Generate temporary share links that expire automatically for secure sharing."
-                />
-                
-                <LandingCard
-                  icon={Shield}
-                  title="Secure & Private"
-                  description="Your data is encrypted and protected with enterprise-grade security standards."
-                />
-                
-                <LandingCard
-                  icon={Zap}
-                  title="Lightning Fast"
-                  description="Optimized performance ensures your files and links load instantly, every time."
-                />
-                
-                <LandingCard
-                  icon={Upload}
-                  title="Easy Upload"
-                  description="Drag and drop files or paste links. Simple interface for maximum productivity."
-                />
+
               </div>
             </div>
           </section>
