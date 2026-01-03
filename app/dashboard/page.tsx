@@ -12,7 +12,7 @@ import { gzipSync } from 'fflate';
 export default function ProtectedPage() {
   const { refreshStorage } = useStorage();
   const [sharedItems, setSharedItems] = useState<any[] | null>(null);
-  const [selectedDuration, setSelectedDuration] = useState(5);
+  const [selectedDuration, setSelectedDuration] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [view, setView] = useState<"grid" | "list">("grid");
   const [uploadImage, setUploadImage] = useState(false);

@@ -46,6 +46,7 @@ const DataCard = ({
   const [confirmAction, setConfirmAction] = useState(false);
   const { refreshStorage } = useStorage();
   const [displayImage, setDisplayImage] = useState<string | null>(null)
+  const [askToRefresh, setAskToRefresh] = useState(false);
 
   useEffect(() => {
     if(!isImage) return;
@@ -133,6 +134,7 @@ const DataCard = ({
     const diffMs = expiryDate.getTime() - now.getTime();
     
     if (diffMs < 0) {
+      setAskToRefresh(true);
       deleteExpired();
       return 'Expired';
     } 
@@ -167,6 +169,10 @@ const DataCard = ({
 
   // Copy text to clipboard save for link
   const handleCopyLink = async () => {
+    if(askToRefresh){
+      showAlert("Error", 'Data deleted, please refresh page.');
+      return;
+    }
     setIsCopying(true);
     try {
       if (in_bucket === 1){
@@ -194,6 +200,10 @@ const DataCard = ({
 
   // Download file
   const handleDownload = async () => {
+    if(askToRefresh){
+      showAlert("Error", 'Data deleted, please refresh page.');
+      return;
+    }
     setIsDownloading(true);
     try {
       const response = await fetch(data);
@@ -220,6 +230,10 @@ const DataCard = ({
 
   // Delete file
   const handleDelete = async () => {
+  if(askToRefresh){
+      showAlert("Error", 'Data deleted, please refresh page.');
+      return;
+    }
   if (in_bucket === 1){
       if (!confirmAction) return;
       setIsDeleting(true);
