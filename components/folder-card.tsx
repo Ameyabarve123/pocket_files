@@ -205,11 +205,11 @@ const FolderCard = ({ i, id, type, mimeType, description, fileSize, bucket, buck
 
   const handleShareFile = async () => {
     setIsSharing(true);
-    if(!imageUrl){
-      showAlert("Error", `Error creating shareable link`);
-      setIsSharing(false);
-      return;
-    }
+    // if(!imageUrl){
+    //   showAlert("Error", `Error creating shareable link`);
+    //   setIsSharing(false);
+    //   return;
+    // }
     try {
       const encodedBucketPath = encodeURIComponent(bucketPath!);
       const res = await fetch(`/api/get/long-term-storage/from-bucket/${encodedBucketPath}`, {
