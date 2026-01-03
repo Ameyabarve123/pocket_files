@@ -22,7 +22,6 @@ interface LandingCardProps {
 }
 
 export function LandingCard({ icon: Icon, title, description, imageURL, imageDescription, accordianData }: LandingCardProps) {
-  console.log(accordianData)
   return (
     <div className="group p-8 rounded-2xl bg-card transition-all flex md:flex-row flex-col gap-10 md:gap-20 xl:gap-30">
       <div>
@@ -57,11 +56,3 @@ export function LandingCard({ icon: Icon, title, description, imageURL, imageDes
     </div>
   );
 }
-
-
-// <AccordionItem value="item-1">
-//             <AccordionTrigger>Temporary Share</AccordionTrigger>
-//             <AccordionContent>
-//               Uploads auto delete for reduced clutter when sharing files between devices.
-//             </AccordionContent>
-//           </AccordionItem>

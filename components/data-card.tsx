@@ -168,20 +168,22 @@ const DataCard = ({
   // Copy text to clipboard save for link
   const handleCopyLink = async () => {
     setIsCopying(true);
-    if(!displayImage){
-      showAlert('Error', 'Failed to copy. Shareable link was unable to be created');
-      setIsCopying(false);
-      return;
-    }
     try {
-      console.log(data);
-      const shareableLink = `${window.location.origin}/api/get/view-image?url=${encodeURIComponent(data)}&type=${encodeURIComponent(file_type)}`;
+      if (in_bucket === 1){
+        // if(!displayImage){
+        //   showAlert('Error', 'Failed to copy. Shareable link was unable to be created.');
+        //   setIsCopying(false);
+        //   return;
+        // }
+        const shareableLink = `${window.location.origin}/api/get/view-image?url=${encodeURIComponent(data)}&type=${encodeURIComponent(file_type)}`;
     
-      await navigator.clipboard.writeText(shareableLink);
-      if (in_bucket === 1)
+        await navigator.clipboard.writeText(shareableLink);
         showAlert("Warning", 'Shareable Link copied to clipboard! NOTE: EVEN IF YOU DELETE THE FILE, THE LINK WILL STILL WORK UNTIL EXPIRATION.');
-      else
+      }
+      else{
+        await navigator.clipboard.writeText(data);
         showAlert('Success', 'Text copied to clipboard!');
+      }
     } catch (err) {
       console.error('Failed to copy:', err);
       showAlert('Error', 'Failed to copy');
